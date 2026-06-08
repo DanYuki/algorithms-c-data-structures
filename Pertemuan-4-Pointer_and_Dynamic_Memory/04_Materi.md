@@ -82,8 +82,8 @@ Visualisasi memori:
 ```
 Variabel angka:                 Variabel ptr:
 ┌─────────────┐                ┌──────────────────────┐
-│     42      │  ← alamat:     │  0x7ffeabcd1234       │
-│             │  0x7ffeabcd1234│  (alamat dari angka)  │
+│     42      │  ← alamat:     │    0x7ffeabcd1234    │
+│             │ 0x7ffeabcd1234 │  (alamat dari angka) │
 └─────────────┘                └──────────────────────┘
       ↑                                   │
       └───────────────────────────────────┘
