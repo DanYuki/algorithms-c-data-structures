@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C Pointer Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --accent3: #3fb950;
+    --accent4: #d2a8ff;
+    --accent5: #ffa657;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --pointer-color: #f78166;
+    --var-color: #58a6ff;
+    --value-color: #3fb950;
+    --addr-color: #d2a8ff;
+    --arrow-color: #ffa657;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(88,166,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(88,166,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-top: 8px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 28px;
+    overflow-x: auto;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    cursor: pointer;
+    border-radius: 9px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { color: var(--text); background: var(--surface2); }
+
+  .tab.active {
+    background: var(--accent);
+    color: #0d1117;
+    font-weight: 600;
+  }
+
+  /* Panel */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Code + memory side-by-side */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-r { background: #f78166; }
+  .dot-y { background: #ffa657; }
+  .dot-g { background: #3fb950; }
+
+  /* Code block */
+  .code-block {
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.9;
+    min-height: 260px;
+  }
+
+  .code-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .code-line:hover { background: rgba(255,255,255,0.04); }
+  .code-line.highlighted { background: rgba(88,166,255,0.12); border-left: 2px solid var(--accent); }
+
+  .line-num {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    min-width: 20px;
+    text-align: right;
+    user-select: none;
+  }
+
+  .kw { color: #ff7b72; }
+  .ty { color: #ffa657; }
+  .va { color: var(--var-color); }
+  .va.ptr { color: var(--pointer-color); }
+  .nu { color: var(--value-color); }
+  .op { color: var(--text-dim); }
+  .cm { color: #8b949e; font-style: italic; }
+  .ad { color: var(--addr-color); }
+  .fn-name { color: #d2a8ff; }
+
+  /* Memory visualization */
+  .memory-vis {
+    padding: 16px;
+    min-height: 260px;
+    position: relative;
+  }
+
+  .mem-label {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .mem-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mem-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.4s ease;
+  }
+
+  .mem-row.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .mem-addr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--addr-color);
+    min-width: 70px;
+  }
+
+  .mem-cell {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+  }
+
+  .mem-byte {
+    width: 38px;
+    height: 34px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .mem-byte:first-child { border-radius: 6px 0 0 6px; }
+  .mem-byte:last-child { border-radius: 0 6px 6px 0; }
+
+  .mem-byte.type-int { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: var(--var-color); }
+  .mem-byte.type-ptr { background: rgba(247,129,102,0.1); border-color: rgba(247,129,102,0.3); color: var(--pointer-color); }
+  .mem-byte.type-char { background: rgba(63,185,80,0.1); border-color: rgba(63,185,80,0.3); color: var(--value-color); }
+  .mem-byte.highlighted-cell { box-shadow: 0 0 0 2px var(--accent); }
+
+  .mem-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    min-width: 60px;
+    margin-left: 10px;
+  }
+
+  .mem-name.var { color: var(--var-color); }
+  .mem-name.ptr { color: var(--pointer-color); }
+
+  .mem-tag {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 4px;
+  }
+
+  /* SVG arrow canvas */
+  #arrow-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Explanation box */
+  .explain-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    min-height: 70px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .explain-box::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--accent), var(--accent4));
+    border-radius: 3px 0 0 3px;
+  }
+
+  .explain-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .explain-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .explain-text code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+
+  /* Step controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 9px 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: #79b8ff; }
+
+  .step-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  /* Progress dots */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .prog-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+  }
+
+  .prog-dot.done { background: var(--accent); }
+  .prog-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent); transform: scale(1.4); }
+
+  /* Quiz styles */
+  .quiz-question {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .quiz-q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quiz-opt {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+    text-align: left;
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { border-color: var(--value-color); background: rgba(63,185,80,0.1); color: var(--value-color); }
+  .quiz-opt.wrong { border-color: var(--accent2); background: rgba(247,129,102,0.1); color: var(--accent2); }
+
+  .quiz-result {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+
+  .quiz-result.show { display: block; }
+  .quiz-result.pass { background: rgba(63,185,80,0.1); color: var(--value-color); border: 1px solid rgba(63,185,80,0.3); }
+  .quiz-result.fail { background: rgba(247,129,102,0.1); color: var(--accent2); border: 1px solid rgba(247,129,102,0.3); }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 260px;
+    line-height: 1.5;
+  }
+
+  .tooltip.show { opacity: 1; }
+
+  /* Cheatsheet table */
+  .cheat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.83rem;
+  }
+
+  .cheat-table th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cheat-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: top;
+  }
+
+  .cheat-table tr:last-child td { border-bottom: none; }
+  .cheat-table tr:hover td { background: var(--surface2); }
+
+  /* Pulse animation for pointer arrow */
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .arrow-animated { animation: pulse-arrow 1.5s ease-in-out infinite; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in { animation: fadeIn 0.4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>*ptr — C Pointer Visualizer</h1>
+    <p>Interactive memory model for understanding pointers in C</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('basics')">① Basics</button>
+    <button class="tab" onclick="switchTab('deref')">② Dereference</button>
+    <button class="tab" onclick="switchTab('ptr2ptr')">③ Ptr to Ptr</button>
+    <button class="tab" onclick="switchTab('arrays')">④ Arrays</button>
+    <button class="tab" onclick="switchTab('cheat')">📋 Cheatsheet</button>
+    <button class="tab" onclick="switchTab('quiz')">🧪 Quiz</button>
+  </div>
+
+  <!-- =================== PANEL: BASICS =================== -->
+  <div class="panel active" id="panel-basics">
+    <div class="explain-box" id="explain-basics">
+      <div class="explain-title">// Explanation</div>
+      <div class="explain-text" id="explain-text-basics">Click a line of code or use Next to step through the pointer concepts.</div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;main.c
+        </div>
+        <div class="code-block" id="code-basics">
+          <!-- filled by JS -->
+        </div>
+      </div>
+      <div class="card" style="position:relative">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;RAM — Stack Memory
+        </div>
+        <div class="memory-vis" id="mem-basics">
+          <div class="mem-label">Address → Variable → Value</div>
+          <div class="mem-grid" id="memgrid-basics"></div>
+          <svg id="arrow-canvas-basics" style="position:absolute;inset:0;pointer-events:none;z-index:10;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="prevStep('basics')" id="prev-basics">◀ Prev</button>
+      <div class="progress-dots" id="dots-basics"></div>
+      <button class="btn primary" onclick="nextStep('basics')" id="next-basics">Next ▶</button>
+      <button class="btn" onclick="resetStep('basics')">↺ Reset</button>
+      <span class="step-indicator" id="stepind-basics">Step 0</span>
+    </div>
+  </div>
+
+  <!-- =================== PANEL: DEREFERENCE =================== -->
+  <div class="panel" id="panel-deref">
+    <div class="explain-box" id="explain-deref">
+      <div class="explain-title">// Explanation</div>
+      <div class="explain-text" id="explain-text-deref">Step through dereferencing — how *ptr reads and writes values.</div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;deref.c
+        </div>
+        <div class="code-block" id="code-deref"></div>
+      </div>
+      <div class="card" style="position:relative">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;RAM — Stack Memory
+        </div>
+        <div class="memory-vis" id="mem-deref">
+          <div class="mem-label">Address → Variable → Value</div>
+          <div class="mem-grid" id="memgrid-deref"></div>
+          <svg id="arrow-canvas-deref" style="position:absolute;inset:0;pointer-events:none;z-index:10;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="prevStep('deref')" id="prev-deref">◀ Prev</button>
+      <div class="progress-dots" id="dots-deref"></div>
+      <button class="btn primary" onclick="nextStep('deref')" id="next-deref">Next ▶</button>
+      <button class="btn" onclick="resetStep('deref')">↺ Reset</button>
+      <span class="step-indicator" id="stepind-deref">Step 0</span>
+    </div>
+  </div>
+
+  <!-- =================== PANEL: PTR TO PTR =================== -->
+  <div class="panel" id="panel-ptr2ptr">
+    <div class="explain-box">
+      <div class="explain-title">// Explanation</div>
+      <div class="explain-text" id="explain-text-ptr2ptr">Pointer to pointer — double indirection. Step through to see the chain.</div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;ptr2ptr.c
+        </div>
+        <div class="code-block" id="code-ptr2ptr"></div>
+      </div>
+      <div class="card" style="position:relative">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;RAM — Stack Memory
+        </div>
+        <div class="memory-vis" id="mem-ptr2ptr">
+          <div class="mem-label">Address → Variable → Value</div>
+          <div class="mem-grid" id="memgrid-ptr2ptr"></div>
+          <svg id="arrow-canvas-ptr2ptr" style="position:absolute;inset:0;pointer-events:none;z-index:10;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="prevStep('ptr2ptr')" id="prev-ptr2ptr">◀ Prev</button>
+      <div class="progress-dots" id="dots-ptr2ptr"></div>
+      <button class="btn primary" onclick="nextStep('ptr2ptr')" id="next-ptr2ptr">Next ▶</button>
+      <button class="btn" onclick="resetStep('ptr2ptr')">↺ Reset</button>
+      <span class="step-indicator" id="stepind-ptr2ptr">Step 0</span>
+    </div>
+  </div>
+
+  <!-- =================== PANEL: ARRAYS =================== -->
+  <div class="panel" id="panel-arrays">
+    <div class="explain-box">
+      <div class="explain-title">// Explanation</div>
+      <div class="explain-text" id="explain-text-arrays">Arrays and pointers — array name is a pointer to the first element.</div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;arrays.c
+        </div>
+        <div class="code-block" id="code-arrays"></div>
+      </div>
+      <div class="card" style="position:relative">
+        <div class="card-header">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          &nbsp;RAM — Stack Memory
+        </div>
+        <div class="memory-vis" id="mem-arrays">
+          <div class="mem-label">Address → Variable → Value</div>
+          <div class="mem-grid" id="memgrid-arrays"></div>
+          <svg id="arrow-canvas-arrays" style="position:absolute;inset:0;pointer-events:none;z-index:10;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="prevStep('arrays')" id="prev-arrays">◀ Prev</button>
+      <div class="progress-dots" id="dots-arrays"></div>
+      <button class="btn primary" onclick="nextStep('arrays')" id="next-arrays">Next ▶</button>
+      <button class="btn" onclick="resetStep('arrays')">↺ Reset</button>
+      <span class="step-indicator" id="stepind-arrays">Step 0</span>
+    </div>
+  </div>
+
+  <!-- =================== PANEL: CHEATSHEET =================== -->
+  <div class="panel" id="panel-cheat">
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        &nbsp;Pointer Quick Reference
+      </div>
+      <div style="padding:0">
+        <table class="cheat-table">
+          <thead>
+            <tr>
+              <th>Syntax</th>
+              <th>Meaning</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--pointer-color)">int *p;</td>
+              <td>Declare pointer to int</td>
+              <td style="color:var(--text-dim)">p stores an address</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent4)">&amp;x</td>
+              <td>Address-of operator — get address of x</td>
+              <td style="color:var(--text-dim)">p = &amp;x;</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent5)">*p</td>
+              <td>Dereference — read/write value at address p</td>
+              <td style="color:var(--text-dim)">*p = 42;</td>
+            </tr>
+            <tr>
+              <td style="color:var(--pointer-color)">int **pp;</td>
+              <td>Pointer to pointer (double indirection)</td>
+              <td style="color:var(--text-dim)">pp = &amp;p;</td>
+            </tr>
+            <tr>
+              <td style="color:var(--value-color)">*(p + n)</td>
+              <td>Pointer arithmetic — access nth element</td>
+              <td style="color:var(--text-dim)">same as p[n]</td>
+            </tr>
+            <tr>
+              <td style="color:var(--value-color)">p[n]</td>
+              <td>Array subscript (sugar for *(p+n))</td>
+              <td style="color:var(--text-dim)">arr[2] = *(arr+2)</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent4)">NULL</td>
+              <td>Null pointer — points to nothing (0)</td>
+              <td style="color:var(--text-dim)">p = NULL;</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent5)">sizeof(p)</td>
+              <td>Size of pointer (8 bytes on 64-bit)</td>
+              <td style="color:var(--text-dim)">8 regardless of type</td>
+            </tr>
+            <tr>
+              <td style="color:var(--pointer-color)">void *p</td>
+              <td>Generic pointer — no type, needs cast</td>
+              <td style="color:var(--text-dim)">(int*)malloc(...)</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent4)">const int *p</td>
+              <td>Pointer to const — can't modify value</td>
+              <td style="color:var(--text-dim)">p itself can change</td>
+            </tr>
+            <tr>
+              <td style="color:var(--accent5)">int * const p</td>
+              <td>Const pointer — address fixed, value writable</td>
+              <td style="color:var(--text-dim)">p can't be reassigned</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;">
+      <div class="mem-label" style="margin-bottom:10px">Common pitfalls ⚠️</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;line-height:1.7">
+        <div><span style="color:var(--accent2)">✗ Uninitialized pointer</span> — <span style="color:var(--text-dim)">int *p; *p = 5; // undefined behavior!</span></div>
+        <div><span style="color:var(--accent2)">✗ NULL dereference</span> — <span style="color:var(--text-dim)">p = NULL; *p = 5; // segfault!</span></div>
+        <div><span style="color:var(--accent2)">✗ Dangling pointer</span> — <span style="color:var(--text-dim)">free(p); *p = 5; // use after free!</span></div>
+        <div><span style="color:var(--accent2)">✗ Type mismatch</span> — <span style="color:var(--text-dim)">double *p = &amp;intVar; // wrong size!</span></div>
+        <div><span style="color:var(--value-color)">✓ Always initialize</span> — <span style="color:var(--text-dim)">int *p = NULL; then assign before use</span></div>
+        <div><span style="color:var(--value-color)">✓ Check NULL</span> — <span style="color:var(--text-dim)">if (p != NULL) { *p = 5; }</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PANEL: QUIZ =================== -->
+  <div class="panel" id="panel-quiz">
+    <div id="quiz-container"></div>
+    <div style="margin-top:12px">
+      <button class="btn primary" onclick="resetQuiz()">↺ Restart Quiz</button>
+      <span id="quiz-score" style="margin-left:16px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-dim)"></span>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// =========================================================
+// DATA: Steps for each panel
+// =========================================================
+
+const panels = {
+  basics: {
+    code: [
+      { html: `<span class="kw">int</span> <span class="va">x</span> <span class="op">=</span> <span class="nu">42</span><span class="op">;</span>`, line: 1 },
+      { html: `<span class="kw">int</span> <span class="op">*</span><span class="va ptr">p</span><span class="op">;</span>`, line: 2 },
+      { html: `<span class="va ptr">p</span> <span class="op">=</span> <span class="op">&amp;</span><span class="va">x</span><span class="op">;</span>`, line: 3 },
+      { html: `<span class="cm">// p now points to x</span>`, line: 4 },
+      { html: `<span class="fn-name">printf</span><span class="op">(</span><span class="nu">"p = %p\\n"</span><span class="op">,</span> <span class="va ptr">p</span><span class="op">);</span>`, line: 5 },
+      { html: `<span class="fn-name">printf</span><span class="op">(</span><span class="nu">"*p = %d\\n"</span><span class="op">,</span> <span class="op">*</span><span class="va ptr">p</span><span class="op">);</span>`, line: 6 },
+    ],
+    steps: [
+      {
+        line: -1,
+        explain: 'We will declare an <code>int</code> variable and a pointer, then connect them. Click <b>Next</b> to begin.',
+        mem: []
+      },
+      {
+        line: 0,
+        explain: '<code>int x = 42;</code> — allocates 4 bytes on the stack for variable <code>x</code> and stores the value <code>42</code>.',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var' }
+        ],
+        arrows: []
+      },
+      {
+        line: 1,
+        explain: '<code>int *p;</code> — declares a pointer variable <code>p</code> that can hold the <b>address</b> of an <code>int</code>. On a 64-bit system, a pointer is 8 bytes. Currently uninitialized (garbage).',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var' },
+          { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['??','??','??','??','??','??','??','??'], nameClass:'ptr' }
+        ],
+        arrows: []
+      },
+      {
+        line: 2,
+        explain: '<code>p = &x;</code> — the <code>&</code> (address-of) operator gets the memory address of <code>x</code> (<code>0x7ff0</code>) and stores it into <code>p</code>. Now <b>p points to x</b>.',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var' },
+          { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0','  ',' ',' ',' ',' '], nameClass:'ptr' }
+        ],
+        arrows: [{ from: 'mem-1', to: 'mem-0', label: 'points to' }]
+      },
+      {
+        line: 3,
+        explain: 'Both variables now exist in memory. <code>p</code> stores the <b>address</b> <code>0x7ff0</code> which is where <code>x</code> lives. The arrow shows the pointer relationship.',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var' },
+          { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0','  ',' ',' ',' ',' '], nameClass:'ptr' }
+        ],
+        arrows: [{ from: 'mem-1', to: 'mem-0', label: 'points to' }]
+      },
+      {
+        line: 4,
+        explain: '<code>printf("p = %p\\n", p)</code> — prints the <b>value of p</b>, which is the address <code>0x7ff0</code>. p itself is just a number (an address).',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var', highlight: false },
+          { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0','  ',' ',' ',' ',' '], nameClass:'ptr', highlight: true }
+        ],
+        arrows: [{ from: 'mem-1', to: 'mem-0', label: 'points to' }]
+      },
+      {
+        line: 5,
+        explain: '<code>printf("*p = %d\\n", *p)</code> — the <code>*</code> (dereference) operator follows the address stored in <code>p</code> and reads the value there → <b>42</b>.',
+        mem: [
+          { addr: '0x7ff0', name: 'x', type: 'int', bytes: ['00','00','00','2A'], nameClass:'var', highlight: true },
+          { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0','  ',' ',' ',' ',' '], nameClass:'ptr', highlight: false }
+        ],
+        arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ reads 42' }]
+      },
+    ]
+  },
+
+  deref: {
+    code: [
+      { html: `<span class="kw">int</span> <span class="va">a</span> <span class="op">=</span> <span class="nu">10</span><span class="op">;</span>`, line: 1 },
+      { html: `<span class="kw">int</span> <span class="op">*</span><span class="va ptr">ptr</span> <span class="op">=</span> <span class="op">&amp;</span><span class="va">a</span><span class="op">;</span>`, line: 2 },
+      { html: `<span class="cm">// Read via pointer</span>`, line: 3 },
+      { html: `<span class="kw">int</span> <span class="va">b</span> <span class="op">=</span> <span class="op">*</span><span class="va ptr">ptr</span><span class="op">;</span> <span class="cm">// b = 10</span>`, line: 4 },
+      { html: `<span class="cm">// Modify via pointer</span>`, line: 5 },
+      { html: `<span class="op">*</span><span class="va ptr">ptr</span> <span class="op">=</span> <span class="nu">99</span><span class="op">;</span> <span class="cm">// a is now 99!</span>`, line: 6 },
+      { html: `<span class="fn-name">printf</span><span class="op">(</span><span class="nu">"%d"</span><span class="op">,</span> <span class="va">a</span><span class="op">);</span> <span class="cm">// 99</span>`, line: 7 },
+    ],
+    steps: [
+      { line: -1, explain: 'Learn how <code>*</code> dereferences a pointer to <b>read</b> and <b>write</b> values indirectly.', mem: [] },
+      { line: 0, explain: '<code>int a = 10;</code> — variable <code>a</code> holds value <code>10</code> at address <code>0x7ff4</code>.', mem: [
+        { addr: '0x7ff4', name: 'a', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' }
+      ], arrows: [] },
+      { line: 1, explain: '<code>int *ptr = &a;</code> — declares and immediately initializes pointer <code>ptr</code> to point at <code>a</code>.', mem: [
+        { addr: '0x7ff4', name: 'a', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'ptr', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: 'points to' }] },
+      { line: 3, explain: '<code>int b = *ptr;</code> — <code>*ptr</code> dereferences: follows the address in <code>ptr</code> (<code>0x7ff4</code>) and reads <code>10</code>. Stores it in <code>b</code>.', mem: [
+        { addr: '0x7ff4', name: 'a', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var', highlight: true },
+        { addr: '0x7fe8', name: 'ptr', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' },
+        { addr: '0x7fe4', name: 'b', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: 'reads 10' }] },
+      { line: 5, explain: '<code>*ptr = 99;</code> — writing through the pointer! This changes the value at address <code>0x7ff4</code>, which is variable <code>a</code>. <b>a is now 99!</b>', mem: [
+        { addr: '0x7ff4', name: 'a', type: 'int', bytes: ['00','00','00','63'], nameClass:'var', highlight: true },
+        { addr: '0x7fe8', name: 'ptr', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' },
+        { addr: '0x7fe4', name: 'b', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: 'writes 99' }] },
+      { line: 6, explain: '<code>printf("%d", a)</code> prints <b>99</b> — the value of <code>a</code> was changed indirectly through the pointer! This is the power of pointers: modifying variables from a distance.', mem: [
+        { addr: '0x7ff4', name: 'a', type: 'int', bytes: ['00','00','00','63'], nameClass:'var', highlight: true },
+        { addr: '0x7fe8', name: 'ptr', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' },
+        { addr: '0x7fe4', name: 'b', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ value is 99' }] },
+    ]
+  },
+
+  ptr2ptr: {
+    code: [
+      { html: `<span class="kw">int</span> <span class="va">x</span> <span class="op">=</span> <span class="nu">5</span><span class="op">;</span>`, line: 1 },
+      { html: `<span class="kw">int</span> <span class="op">*</span><span class="va ptr">p</span> <span class="op">=</span> <span class="op">&amp;</span><span class="va">x</span><span class="op">;</span>`, line: 2 },
+      { html: `<span class="kw">int</span> <span class="op">**</span><span class="va ptr">pp</span> <span class="op">=</span> <span class="op">&amp;</span><span class="va ptr">p</span><span class="op">;</span>`, line: 3 },
+      { html: `<span class="cm">// Access via chains:</span>`, line: 4 },
+      { html: `<span class="op">*</span><span class="va ptr">p</span>   <span class="op">==</span> <span class="nu">5</span>   <span class="cm">// value of x</span>`, line: 5 },
+      { html: `<span class="op">**</span><span class="va ptr">pp</span>  <span class="op">==</span> <span class="nu">5</span>   <span class="cm">// also value of x</span>`, line: 6 },
+      { html: `<span class="op">*</span><span class="va ptr">pp</span>   <span class="op">==</span> <span class="va ptr">p</span>   <span class="cm">// address of x</span>`, line: 7 },
+    ],
+    steps: [
+      { line: -1, explain: 'Pointer to pointer (<code>**</code>) — double indirection. Used in 2D arrays, argv, and pass-by-pointer-pointer patterns.', mem: [] },
+      { line: 0, explain: '<code>int x = 5;</code> — a normal integer variable at address <code>0x7ff8</code>.', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var' }
+      ], arrows: [] },
+      { line: 1, explain: '<code>int *p = &x;</code> — pointer <code>p</code> stores address of <code>x</code>. p itself lives at <code>0x7ff0</code>.', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var' },
+        { addr: '0x7ff0', name: 'p', type: 'ptr', bytes: ['0x','7f','f8',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ x' }] },
+      { line: 2, explain: '<code>int **pp = &p;</code> — <code>pp</code> is a pointer to a pointer. It stores the address of <code>p</code> (<code>0x7ff0</code>). Three levels of indirection!', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var' },
+        { addr: '0x7ff0', name: 'p', type: 'ptr', bytes: ['0x','7f','f8',' ',' ',' ',' ',' '], nameClass:'ptr' },
+        { addr: '0x7fe8', name: 'pp', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ x' }, { from: 'mem-2', to: 'mem-1', label: '→ p' }] },
+      { line: 4, explain: '<code>*p == 5</code> — one dereference: follow p\'s address to reach <code>x</code>, read value <b>5</b>.', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var', highlight: true },
+        { addr: '0x7ff0', name: 'p', type: 'ptr', bytes: ['0x','7f','f8',' ',' ',' ',' ',' '], nameClass:'ptr' },
+        { addr: '0x7fe8', name: 'pp', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ 5' }, { from: 'mem-2', to: 'mem-1', label: '→ p' }] },
+      { line: 5, explain: '<code>**pp == 5</code> — two dereferences: pp → p → x → <b>5</b>. The chain: follow pp to get p, then follow p to get x.', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var', highlight: true },
+        { addr: '0x7ff0', name: 'p', type: 'ptr', bytes: ['0x','7f','f8',' ',' ',' ',' ',' '], nameClass:'ptr', highlight: true },
+        { addr: '0x7fe8', name: 'pp', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr', highlight: true }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ x' }, { from: 'mem-2', to: 'mem-1', label: '→ p →→ x' }] },
+      { line: 6, explain: '<code>*pp == p</code> — one dereference of pp gives you <code>p</code> itself (an address, not a value). This is how you can <b>modify the pointer p</b> through pp.', mem: [
+        { addr: '0x7ff8', name: 'x', type: 'int', bytes: ['00','00','00','05'], nameClass:'var' },
+        { addr: '0x7ff0', name: 'p', type: 'ptr', bytes: ['0x','7f','f8',' ',' ',' ',' ',' '], nameClass:'ptr', highlight: true },
+        { addr: '0x7fe8', name: 'pp', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-1', to: 'mem-0', label: '→ x' }, { from: 'mem-2', to: 'mem-1', label: '→ p (addr)' }] },
+    ]
+  },
+
+  arrays: {
+    code: [
+      { html: `<span class="kw">int</span> <span class="va">arr</span><span class="op">[</span><span class="nu">3</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span><span class="nu">10</span><span class="op">,</span><span class="nu">20</span><span class="op">,</span><span class="nu">30</span><span class="op">};</span>`, line: 1 },
+      { html: `<span class="kw">int</span> <span class="op">*</span><span class="va ptr">p</span> <span class="op">=</span> <span class="va">arr</span><span class="op">;</span> <span class="cm">// arr == &arr[0]</span>`, line: 2 },
+      { html: `<span class="va ptr">p</span><span class="op">[</span><span class="nu">0</span><span class="op">]</span> <span class="cm">// → 10 (same as *p)</span>`, line: 3 },
+      { html: `<span class="va ptr">p</span><span class="op">[</span><span class="nu">1</span><span class="op">]</span> <span class="cm">// → 20 (same as *(p+1))</span>`, line: 4 },
+      { html: `<span class="va ptr">p</span><span class="op">[</span><span class="nu">2</span><span class="op">]</span> <span class="cm">// → 30 (same as *(p+2))</span>`, line: 5 },
+      { html: `<span class="va ptr">p</span><span class="op">++;</span> <span class="cm">// advance to next int</span>`, line: 6 },
+      { html: `<span class="op">*</span><span class="va ptr">p</span> <span class="cm">// now → 20</span>`, line: 7 },
+    ],
+    steps: [
+      { line: -1, explain: 'In C, an array name is a pointer to its first element. Pointer arithmetic moves by the size of the type (4 bytes for int).', mem: [] },
+      { line: 0, explain: '<code>int arr[3] = {10,20,30};</code> — three contiguous <code>int</code>s in memory. Each occupies 4 bytes. Total: 12 bytes.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var' },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+      ], arrows: [] },
+      { line: 1, explain: '<code>int *p = arr;</code> — <code>arr</code> decays to <code>&arr[0]</code>. So <code>p</code> stores <code>0x7ff0</code>. Pointer now points at first element.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var', highlight: true },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var' },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-0', label: '→ arr[0]' }] },
+      { line: 2, explain: '<code>p[0]</code> is <code>*(p+0)</code> = <code>*p</code> = <b>10</b>. Subscript notation is just syntactic sugar for pointer arithmetic.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var', highlight: true },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var' },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-0', label: 'p[0] = 10' }] },
+      { line: 3, explain: '<code>p[1]</code> is <code>*(p+1)</code>. Adding 1 to an <code>int*</code> advances by <b>4 bytes</b> (size of int). So 0x7ff0 + 4 = 0x7ff4 → <b>20</b>.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var', highlight: true },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-1', label: 'p[1] = 20' }] },
+      { line: 4, explain: '<code>p[2]</code> is <code>*(p+2)</code>. 0x7ff0 + 8 = 0x7ff8 → <b>30</b>. Pointer arithmetic always scales by <code>sizeof(type)</code>.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var' },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var', highlight: true },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f0',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-2', label: 'p[2] = 30' }] },
+      { line: 5, explain: '<code>p++;</code> — post-increment moves <code>p</code> forward by <b>4 bytes</b>. Now p = 0x7ff4, pointing to <code>arr[1]</code>.', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var', highlight: true },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-1', label: 'now → arr[1]' }] },
+      { line: 6, explain: '<code>*p</code> now reads from <code>0x7ff4</code> = <code>arr[1]</code> = <b>20</b>. This is how loops like <code>while(*p++) printf(...)</code> work!', mem: [
+        { addr: '0x7ff0', name: 'arr[0]', type: 'int', bytes: ['00','00','00','0A'], nameClass:'var' },
+        { addr: '0x7ff4', name: 'arr[1]', type: 'int', bytes: ['00','00','00','14'], nameClass:'var', highlight: true },
+        { addr: '0x7ff8', name: 'arr[2]', type: 'int', bytes: ['00','00','00','1E'], nameClass:'var' },
+        { addr: '0x7fe8', name: 'p', type: 'ptr', bytes: ['0x','7f','f4',' ',' ',' ',' ',' '], nameClass:'ptr' }
+      ], arrows: [{ from: 'mem-3', to: 'mem-1', label: '*p = 20' }] },
+    ]
+  }
+};
+
+// =========================================================
+// STATE
+// =========================================================
+const state = {};
+Object.keys(panels).forEach(k => state[k] = 0);
+
+// =========================================================
+// RENDER CODE BLOCK
+// =========================================================
+function renderCode(panelId) {
+  const data = panels[panelId];
+  const el = document.getElementById('code-' + panelId);
+  el.innerHTML = data.code.map((c, i) => `
+    <div class="code-line" id="codeline-${panelId}-${i}" onclick="jumpToStep('${panelId}', ${i+1})">
+      <span class="line-num">${c.line}</span>
+      <span>${c.html}</span>
+    </div>
+  `).join('');
+}
+
+// =========================================================
+// RENDER MEMORY
+// =========================================================
+function renderMemory(panelId, step) {
+  const stepData = panels[panelId].steps[step];
+  const grid = document.getElementById('memgrid-' + panelId);
+  grid.innerHTML = '';
+
+  stepData.mem.forEach((row, i) => {
+    const div = document.createElement('div');
+    div.className = 'mem-row';
+    div.id = 'memrow-' + panelId + '-' + i;
+
+    const bytesHtml = row.bytes.map(b => 
+      `<div class="mem-byte type-${row.type} ${row.highlight ? 'highlighted-cell' : ''}">${b}</div>`
+    ).join('');
+
+    div.innerHTML = `
+      <span class="mem-addr">${row.addr}</span>
+      <div class="mem-cell">${bytesHtml}</div>
+      <span class="mem-name ${row.nameClass}">${row.name}
+        <span class="mem-tag">${row.type === 'ptr' ? '[ptr]' : row.type === 'int' ? '[int]' : '[char]'}</span>
+      </span>
+    `;
+    grid.appendChild(div);
+
+    // Animate in with delay
+    setTimeout(() => div.classList.add('visible'), i * 80 + 50);
+  });
+
+  // Draw arrows after a tiny delay for layout
+  setTimeout(() => drawArrows(panelId, step), 200);
+}
+
+// =========================================================
+// DRAW ARROWS
+// =========================================================
+function drawArrows(panelId, step) {
+  const svg = document.getElementById('arrow-canvas-' + panelId);
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  const stepData = panels[panelId].steps[step];
+  if (!stepData.arrows || stepData.arrows.length === 0) return;
+
+  const container = svg.parentElement;
+  const containerRect = container.getBoundingClientRect();
+
+  stepData.arrows.forEach(arrow => {
+    const fromIdx = parseInt(arrow.from.split('-')[1]);
+    const toIdx = parseInt(arrow.to.split('-')[1]);
+
+    const fromRow = document.getElementById('memrow-' + panelId + '-' + fromIdx);
+    const toRow = document.getElementById('memrow-' + panelId + '-' + toIdx);
+
+    if (!fromRow || !toRow) return;
+
+    const fromRect = fromRow.getBoundingClientRect();
+    const toRect = toRow.getBoundingClientRect();
+
+    const x1 = fromRect.left - containerRect.left + fromRect.width * 0.6;
+    const y1 = fromRect.top - containerRect.top + fromRect.height / 2;
+    const x2 = toRect.left - containerRect.left + toRect.width * 0.3;
+    const y2 = toRect.top - containerRect.top + toRect.height / 2;
+
+    // Curved path
+    const cx = Math.max(x1, x2) + 30;
+    const cy = (y1 + y2) / 2;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x1} ${y1} C ${cx} ${y1} ${cx} ${y2} ${x2} ${y2}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#ffa657');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-dasharray', '5,3');
+    path.setAttribute('marker-end', 'url(#arrowhead-' + panelId + ')');
+    path.classList.add('arrow-animated');
+    svg.appendChild(path);
+
+    // Label
+    if (arrow.label) {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', cx + 4);
+      text.setAttribute('y', cy);
+      text.setAttribute('fill', '#ffa657');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-family', 'JetBrains Mono, monospace');
+      text.textContent = arrow.label;
+      svg.appendChild(text);
+    }
+  });
+
+  // Arrowhead marker
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `
+    <marker id="arrowhead-${panelId}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffa657"/>
+    </marker>
+  `;
+  svg.insertBefore(defs, svg.firstChild);
+
+  svg.setAttribute('width', containerRect.width);
+  svg.setAttribute('height', containerRect.height);
+}
+
+// =========================================================
+// UPDATE STEP
+// =========================================================
+function updateStep(panelId) {
+  const step = state[panelId];
+  const data = panels[panelId];
+  const totalSteps = data.steps.length;
+
+  // Update code highlight
+  const lines = document.querySelectorAll(`#code-${panelId} .code-line`);
+  lines.forEach(l => l.classList.remove('highlighted'));
+  const activeLine = data.steps[step].line;
+  if (activeLine >= 0 && lines[activeLine]) {
+    lines[activeLine].classList.add('highlighted');
+  }
+
+  // Update explanation
+  const explainEl = document.getElementById('explain-text-' + panelId);
+  if (explainEl) {
+    explainEl.innerHTML = data.steps[step].explain;
+    explainEl.classList.remove('fade-in');
+    void explainEl.offsetWidth;
+    explainEl.classList.add('fade-in');
+  }
+
+  // Update memory
+  renderMemory(panelId, step);
+
+  // Update buttons
+  document.getElementById('prev-' + panelId).disabled = step === 0;
+  document.getElementById('next-' + panelId).disabled = step === totalSteps - 1;
+
+  // Update step indicator
+  document.getElementById('stepind-' + panelId).textContent = `Step ${step} / ${totalSteps - 1}`;
+
+  // Update dots
+  const dots = document.getElementById('dots-' + panelId);
+  dots.innerHTML = '';
+  for (let i = 0; i < totalSteps; i++) {
+    const d = document.createElement('div');
+    d.className = 'prog-dot' + (i < step ? ' done' : i === step ? ' current' : '');
+    dots.appendChild(d);
+  }
+}
+
+function nextStep(panelId) {
+  const total = panels[panelId].steps.length;
+  if (state[panelId] < total - 1) {
+    state[panelId]++;
+    updateStep(panelId);
+  }
+}
+
+function prevStep(panelId) {
+  if (state[panelId] > 0) {
+    state[panelId]--;
+    updateStep(panelId);
+  }
+}
+
+function resetStep(panelId) {
+  state[panelId] = 0;
+  updateStep(panelId);
+}
+
+function jumpToStep(panelId, lineIdx) {
+  // Find step that corresponds to this line
+  const steps = panels[panelId].steps;
+  const targetLine = lineIdx - 1;
+  let best = 0;
+  steps.forEach((s, i) => { if (s.line === targetLine) best = i; });
+  state[panelId] = best;
+  updateStep(panelId);
+}
+
+// =========================================================
+// TABS
+// =========================================================
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  const panel = document.getElementById('panel-' + tabName);
+  if (panel) {
+    panel.classList.add('active');
+    if (panels[tabName]) setTimeout(() => updateStep(tabName), 50);
+  }
+}
+
+// =========================================================
+// QUIZ
+// =========================================================
+const quizData = [
+  {
+    q: 'What does the & operator do in C?\nint x = 10;\nint *p = &x;',
+    options: ['Dereferences a pointer', 'Returns the address of a variable', 'Multiplies two values', 'Declares a pointer'],
+    answer: 1,
+    explain: '& is the address-of operator — it returns the memory address of a variable.'
+  },
+  {
+    q: 'What does *p give you if p is declared as: int x = 42; int *p = &x;',
+    options: ['The address of x', 'The value of p', '42', 'An error'],
+    answer: 2,
+    explain: '*p dereferences the pointer — it follows the address stored in p and reads the value there (42).'
+  },
+  {
+    q: 'After: int arr[3] = {1,2,3};\nint *p = arr;\np++;\nWhat is *p?',
+    options: ['1', '2', '3', 'Undefined'],
+    answer: 1,
+    explain: 'p started at arr[0]. p++ advances by sizeof(int)=4 bytes to arr[1], so *p is 2.'
+  },
+  {
+    q: 'What is the size of a pointer on a 64-bit system?',
+    options: ['4 bytes', '2 bytes', '8 bytes', 'Depends on what it points to'],
+    answer: 2,
+    explain: 'On 64-bit systems, ALL pointers are 8 bytes — regardless of the type they point to.'
+  },
+  {
+    q: 'Given: int x=5; int *p=&x; int **pp=&p;\nWhat is **pp?',
+    options: ['Address of p', 'Address of x', '5', 'A syntax error'],
+    answer: 2,
+    explain: '**pp follows two levels of indirection: pp → p → x → 5.'
+  },
+  {
+    q: 'What is a "dangling pointer"?',
+    options: [
+      'A pointer that is NULL',
+      'A pointer to freed/out-of-scope memory',
+      'A pointer to a pointer',
+      'An uninitialized pointer variable'
+    ],
+    answer: 1,
+    explain: 'A dangling pointer points to memory that has been freed or is out of scope — accessing it is undefined behavior.'
+  },
+];
+
+let quizAnswers = new Array(quizData.length).fill(null);
+let quizCorrect = 0;
+
+function renderQuiz() {
+  quizAnswers = new Array(quizData.length).fill(null);
+  quizCorrect = 0;
+  document.getElementById('quiz-score').textContent = '';
+
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = quizData.map((q, qi) => `
+    <div class="quiz-question fade-in" style="animation-delay:${qi * 0.08}s">
+      <div class="quiz-q"><span style="color:var(--accent4)">Q${qi+1}.</span> <pre style="font-family:inherit;white-space:pre-wrap">${q.q}</pre></div>
+      <div class="quiz-options">
+        ${q.options.map((opt, oi) => `
+          <button class="quiz-opt" id="qopt-${qi}-${oi}" onclick="answerQuiz(${qi}, ${oi})">${oi === 0 ? 'A' : oi === 1 ? 'B' : oi === 2 ? 'C' : 'D'}. ${opt}</button>
+        `).join('')}
+      </div>
+      <div class="quiz-result" id="qresult-${qi}"></div>
+    </div>
+  `).join('');
+}
+
+function answerQuiz(qi, oi) {
+  if (quizAnswers[qi] !== null) return; // already answered
+  quizAnswers[qi] = oi;
+
+  const q = quizData[qi];
+  const resultEl = document.getElementById('qresult-' + qi);
+  const opts = document.querySelectorAll(`[id^="qopt-${qi}-"]`);
+
+  opts.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === oi) btn.classList.add('wrong');
+  });
+
+  if (oi === q.answer) {
+    quizCorrect++;
+    resultEl.textContent = '✓ Correct! ' + q.explain;
+    resultEl.className = 'quiz-result show pass';
+  } else {
+    resultEl.textContent = '✗ Incorrect. ' + q.explain;
+    resultEl.className = 'quiz-result show fail';
+  }
+
+  if (quizAnswers.filter(a => a !== null).length === quizData.length) {
+    document.getElementById('quiz-score').textContent = `Score: ${quizCorrect} / ${quizData.length}`;
+  }
+}
+
+function resetQuiz() {
+  renderQuiz();
+}
+
+// =========================================================
+// INIT
+// =========================================================
+['basics', 'deref', 'ptr2ptr', 'arrays'].forEach(id => {
+  renderCode(id);
+  updateStep(id);
+});
+renderQuiz();
+
+// Redraw arrows on resize
+window.addEventListener('resize', () => {
+  ['basics', 'deref', 'ptr2ptr', 'arrays'].forEach(id => {
+    drawArrows(id, state[id]);
+  });
+});
+</script>
+</body>
+</html>
