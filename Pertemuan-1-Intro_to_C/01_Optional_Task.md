@@ -65,11 +65,11 @@ Buat program C yang:
 
 | Rentang Nilai | Grade |
 |---------------|-------|
-| 85 – 100 | A |
-| 70 – 84 | B |
-| 60 – 69 | C |
-| 50 – 59 | D |
-| 0 – 49 | E |
+| 90 – 100 | A |
+| 80 – 89 | B |
+| 70 – 79 | C |
+| 60 – 69 | D |
+| 0 – 59 | E |
 
 3. Jika nilai yang dimasukkan di luar rentang 0–100, tampilkan pesan: `"Nilai tidak valid. Masukkan nilai antara 0 dan 100."`
 
