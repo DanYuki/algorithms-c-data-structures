@@ -221,25 +221,7 @@ Dengan urutan ini, kamu memisahkan "berpikir tentang solusi" dari "berpikir tent
 
 #### Langkah 1 — Flowchart
 
-```
-        START
-          |
-          v
-  [ Input: angka ]
-          |
-          v
-  < angka % 2 == 0 ? >
-       /        \
-     Ya          Tidak
-      |            |
-      v            v
- [ "Genap" ]  [ "Ganjil" ]
-      |            |
-      +-----+------+
-            |
-            v
-          END
-```
+![diagram](flowchart-1.png)
 
 > **Cara membaca flowchart:** mulai dari START, ikuti panah. Di belah ketupat, pilih jalur sesuai kondisi (Ya atau Tidak).
 
