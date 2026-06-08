@@ -236,7 +236,7 @@ Di bahasa lain, string adalah tipe data tersendiri. Di C, **string adalah array 
 ```
 String "Halo" disimpan sebagai:
  'H'  'a'  'l'  'o'  '\0'
-[0]  [1]  [2]  [3]  [4]
+ [0]  [1]  [2]  [3]  [4]
 ```
 
 Karakter `\0` (nilai ASCII 0) menandai akhir string. Tanpa `\0`, fungsi-fungsi string tidak tahu di mana string berakhir.
