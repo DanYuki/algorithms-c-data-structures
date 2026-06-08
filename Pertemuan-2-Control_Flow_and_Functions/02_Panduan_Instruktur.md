@@ -143,19 +143,23 @@ do {
 
 ## E. Kunci Jawaban Task B
 
-### Bagian A — Luas & Keliling
+### Fungsi 1 — hitung_luas
 
 ```c
 int hitung_luas(int panjang, int lebar) {
     return panjang * lebar;
 }
+```
 
+### Fungsi 2 — hitung_keliling
+
+```c
 int hitung_keliling(int panjang, int lebar) {
     return 2 * (panjang + lebar);
 }
 ```
 
-### Bagian B — Tabel Perkalian (void)
+### Fungsi 3 — cetak_tabel_perkalian
 
 ```c
 void cetak_tabel_perkalian(int angka) {
@@ -166,29 +170,95 @@ void cetak_tabel_perkalian(int angka) {
 }
 ```
 
-### Bagian C — Rekursi Pangkat
+### Fungsi 4 — hitung_pangkat (rekursif)
 
 ```c
-int pangkat(int basis, int eksponen) {
-    if (eksponen == 0) {   /* C1: base case */
+int hitung_pangkat(int basis, int eksponen) {
+    if (eksponen == 0) {
         return 1;
     }
-    return basis * pangkat(basis, eksponen - 1);  /* C2: recursive case */
+    return basis * hitung_pangkat(basis, eksponen - 1);
 }
 ```
 
-### Bagian D — Pemanggilan di main
+### Fungsi 5 — jumlah_1_sampai_n (rekursif)
 
 ```c
-printf("Luas     : %d\n", hitung_luas(panjang, lebar));      /* D1 */
-printf("Keliling : %d\n", hitung_keliling(panjang, lebar));  /* D2 */
-cetak_tabel_perkalian(angka_tabel);                          /* D3 */
-printf("3^4 = %d\n", pangkat(3, 4));                        /* D4 */
+int jumlah_1_sampai_n(int n) {
+    if (n == 0) {
+        return 0;
+    }
+    return n + jumlah_1_sampai_n(n - 1);
+}
+```
+
+### main — Pemanggilan Fungsi
+
+```c
+int main() {
+    int panjang = 5, lebar = 3;
+
+    printf("=== Persegi Panjang (panjang=%d, lebar=%d) ===\n", panjang, lebar);
+    printf("Luas     : %d\n", hitung_luas(panjang, lebar));
+    printf("Keliling : %d\n", hitung_keliling(panjang, lebar));
+
+    printf("\n=== Tabel Perkalian 4 ===\n");
+    cetak_tabel_perkalian(4);
+
+    printf("\n=== Pangkat ===\n");
+    printf("2^0 = %d\n", hitung_pangkat(2, 0));
+    printf("2^3 = %d\n", hitung_pangkat(2, 3));
+    printf("3^4 = %d\n", hitung_pangkat(3, 4));
+
+    printf("\n=== Jumlah 1 sampai N ===\n");
+    printf("Jumlah 1 s.d. 5  = %d\n", jumlah_1_sampai_n(5));
+    printf("Jumlah 1 s.d. 10 = %d\n", jumlah_1_sampai_n(10));
+
+    return 0;
+}
 ```
 
 ---
 
-## F. Antisipasi Pertanyaan Siswa
+## F. Panduan Pengecekan Bertahap Task B
+
+Task B dirancang agar dikerjakan **fungsi per fungsi**. Minta siswa memanggil instruktur setiap kali satu fungsi selesai — jangan tunggu semua selesai baru dicek.
+
+### Fungsi 1 — hitung_luas
+Tanya siswa: *"Apa yang dikembalikan fungsi ini?"* Pastikan ada `return`, bukan hanya `printf`.
+Kesalahan umum: lupa `return`, atau menghitung keliling alih-alih luas.
+
+### Fungsi 2 — hitung_keliling
+Tanya siswa: *"Kenapa ada tanda kurung di `2 * (panjang + lebar)`?"*
+Kesalahan umum: menulis `2 * panjang + lebar` (salah urutan operasi).
+
+### Fungsi 3 — cetak_tabel_perkalian
+Minta siswa compile dan jalankan, lalu bandingkan output dengan Expected Output di header file.
+Kesalahan umum: loop berhenti di `i <= 5` atau `i < 10`, format `%d` bukan `%2d` sehingga kolom tidak rapi.
+
+### Fungsi 4 — hitung_pangkat (rekursif)
+Tanya siswa: *"Apa yang terjadi kalau eksponen = 0?"* dan *"Apa yang dikembalikan untuk kasus rekursifnya?"*
+Kesalahan umum: menggunakan `+` alih-alih `*` pada kasus rekursif, atau base case tidak ditangani sama sekali.
+Jika siswa bingung, gambar call stack `hitung_pangkat(2, 3)` di kertas:
+```
+hitung_pangkat(2,3) = 2 * hitung_pangkat(2,2)
+                          = 2 * hitung_pangkat(2,1)
+                                = 2 * hitung_pangkat(2,0)
+                                          = 1
+```
+
+### Fungsi 5 — jumlah_1_sampai_n (rekursif)
+Tanya siswa: *"Base case-nya return berapa? Kenapa 0, bukan 1?"*
+Kesalahan umum: `return 1` di base case — ini yang paling sering salah. Kalau `n=0` mengembalikan 1, semua hasil akan kelebihan 1.
+Verifikasi cepat: `jumlah_1_sampai_n(5)` harus 15, bukan 16.
+
+### main — Pemanggilan Fungsi
+Setelah semua fungsi selesai, minta siswa tulis sendiri semua pemanggilan di `main`, compile, dan cocokkan output dengan Expected Output di header file secara baris per baris.
+Kesalahan umum: argumen kurang (memanggil `hitung_luas(panjang)` tanpa `lebar`), lupa `\n` di `printf`, atau format string tidak cocok.
+
+---
+
+## G. Antisipasi Pertanyaan Siswa
 
 **Q: Kapan harus pakai `for`, kapan `while`, kapan `do-while`?**
 A: `for` kalau tahu pasti berapa kali iterasi. `while` kalau tidak tahu kapan berhentinya. `do-while` kalau harus jalan minimal sekali dulu baru cek kondisinya — paling sering dipakai untuk menu interaktif.
