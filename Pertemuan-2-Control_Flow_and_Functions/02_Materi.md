@@ -444,7 +444,7 @@ int hitung_luas(int panjang, int lebar) {
 
 ---
 
-## 6. Rekursi Dasar
+## 6. Rekursi Dasar (Optional/Cukup tahu saja)
 
 **Rekursi** adalah teknik di mana sebuah fungsi **memanggil dirinya sendiri**. Konsep ini terdengar membingungkan, tapi sangat berguna untuk masalah yang bisa dipecah menjadi sub-masalah yang lebih kecil dari bentuk yang sama.
 
