@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linked List in C — Visual Playground</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --ink:      #0e0e10;
+  --paper:    #141417;
+  --card:     #1c1c21;
+  --border:   #2a2a33;
+  --border2:  #38383f;
+  --muted:    #5a5a6a;
+  --text:     #d4d4e0;
+  --bright:   #f0f0f8;
+  --node-bg:  #1e2030;
+  --node-border: #3b4060;
+
+  /* accent palette */
+  --teal:   #4ec9b0;
+  --amber:  #ffcc66;
+  --coral:  #f48c7f;
+  --violet: #9b8fff;
+  --sky:    #79c0ff;
+  --green:  #6bcb77;
+  --red:    #ff6b6b;
+
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── scanline texture ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ══════════════════════════════ LAYOUT ══════════════════════════════ */
+.app {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 100vh;
+}
+
+/* ── header ── */
+.header {
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--paper);
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--bright);
+  letter-spacing: -0.3px;
+}
+
+.logo span { color: var(--teal); }
+.logo .ptr { color: var(--coral); }
+
+.header-sub {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+/* ── tab bar ── */
+.tabbar {
+  display: flex;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.tabbar button {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  padding: 11px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+
+.tabbar button:hover { color: var(--text); }
+.tabbar button.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+/* ── main body ── */
+.main { display: flex; overflow: hidden; }
+
+/* ── sidebar (code) ── */
+.sidebar {
+  width: 320px;
+  min-width: 260px;
+  background: var(--paper);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-title {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.traffic { display: flex; gap: 5px; }
+.t-dot { width: 8px; height: 8px; border-radius: 50%; }
+.t-r { background: #ff5f57; } .t-y { background: #febc2e; } .t-g { background: #28c840; }
+
+.code-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.85;
+}
+
+.c-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 0 16px 0 0;
+  cursor: pointer;
+  transition: background .12s;
+  position: relative;
+}
+
+.c-line:hover { background: rgba(78,201,176,0.04); }
+.c-line.hl { background: rgba(78,201,176,0.09); }
+.c-line.hl::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--teal);
+}
+
+.ln {
+  min-width: 36px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  user-select: none;
+  text-align: right;
+  padding-top: 1px;
+}
+
+.ct { flex: 1; word-break: break-word; }
+.kw { color: #cc99cd; }
+.ty { color: var(--amber); }
+.va { color: var(--sky); }
+.pt { color: var(--coral); }
+.nu { color: var(--green); }
+.op { color: var(--muted); }
+.cm { color: var(--muted); font-style: italic; }
+.fn { color: var(--violet); }
+.st { color: var(--teal); }
+.ar { color: var(--coral); }
+
+/* ── canvas area ── */
+.canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+/* ── visualizer ── */
+.viz-container {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  padding: 24px;
+  min-height: 220px;
+}
+
+/* ── explain bar ── */
+.explain-bar {
+  border-top: 1px solid var(--border);
+  padding: 12px 24px;
+  background: var(--paper);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.explain-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.explain-text code {
+  font-family: var(--font-mono);
+  background: var(--card);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  color: var(--teal);
+}
+
+/* ── bottom control bar ── */
+.control-bar {
+  border-top: 1px solid var(--border);
+  padding: 12px 24px;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  padding: 7px 16px;
+  border: 1px solid var(--border2);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.btn:hover { border-color: var(--teal); color: var(--teal); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn.primary { background: var(--teal); color: var(--ink); border-color: var(--teal); font-weight: 600; }
+.btn.primary:hover { background: #6fd8c0; }
+.btn.danger { border-color: var(--coral); color: var(--coral); }
+.btn.danger:hover { background: rgba(244,140,127,.12); }
+
+.step-counter {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.dots-row { display: flex; gap: 5px; align-items: center; }
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); transition: all .25s; }
+.step-dot.done { background: var(--teal); opacity: .6; }
+.step-dot.cur  { background: var(--teal); transform: scale(1.5); box-shadow: 0 0 6px var(--teal); }
+
+/* ══════════════════════════════ NODE STYLES ══════════════════════════════ */
+.ll-stage {
+  position: relative;
+  min-height: 160px;
+  min-width: 600px;
+}
+
+.node-wrap {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all .5s cubic-bezier(.4,0,.2,1);
+}
+
+.node-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.node {
+  display: flex;
+  border: 1.5px solid var(--node-border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--node-bg);
+  box-shadow: 0 2px 12px rgba(0,0,0,.4);
+  transition: border-color .3s, box-shadow .3s;
+}
+
+.node.highlight { border-color: var(--teal); box-shadow: 0 0 16px rgba(78,201,176,.35); }
+.node.new-node  { border-color: var(--amber); box-shadow: 0 0 16px rgba(255,204,102,.35); }
+.node.del-node  { border-color: var(--red); box-shadow: 0 0 16px rgba(255,107,107,.35); opacity: .5; }
+.node.head-node { border-color: var(--violet); box-shadow: 0 0 12px rgba(155,143,255,.25); }
+
+.node-data {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  border-right: 1.5px solid var(--node-border);
+  min-width: 56px;
+  align-items: center;
+  gap: 2px;
+}
+
+.node-field-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.node-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--amber);
+}
+
+.node-next {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  min-width: 72px;
+  align-items: center;
+  gap: 2px;
+}
+
+.node-ptr-val {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--coral);
+}
+
+.node-null {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* HEAD/TAIL pointer labels */
+.pointer-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.pointer-label.head-lbl { background: rgba(155,143,255,.18); color: var(--violet); border: 1px solid rgba(155,143,255,.3); }
+.pointer-label.tail-lbl { background: rgba(255,204,102,.12); color: var(--amber); border: 1px solid rgba(255,204,102,.3); }
+.pointer-label.cur-lbl  { background: rgba(78,201,176,.12); color: var(--teal); border: 1px solid rgba(78,201,176,.3); }
+
+/* address badge */
+.addr-badge {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* SVG arrows */
+#ll-arrows {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── NULL terminator ── */
+.null-box {
+  position: absolute;
+  border: 1.5px dashed var(--border2);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--paper);
+  transition: all .5s;
+}
+
+/* empty state */
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+/* ══════════════════════════════ MEMORY TABLE ══════════════════════════════ */
+.mem-table-wrap { padding: 20px 24px; overflow-x: auto; }
+.mem-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.mem-table th {
+  text-align: left;
+  padding: 8px 14px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border-bottom: 1px solid var(--border);
+}
+.mem-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(42,42,51,.6);
+  vertical-align: middle;
+}
+.mem-table tr:hover td { background: rgba(255,255,255,.02); }
+.mem-table td.addr  { color: var(--violet); }
+.mem-table td.vname { color: var(--sky); }
+.mem-table td.val   { color: var(--amber); font-weight: 600; }
+.mem-table td.ptr-v { color: var(--coral); }
+.mem-table td.note  { color: var(--muted); font-size: 0.7rem; }
+
+/* ══════════════════════════════ PLAYGROUND ══════════════════════════════ */
+.playground { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.pg-section-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+
+.pg-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.pg-input {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 7px 12px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  color: var(--bright);
+  border-radius: 5px;
+  width: 80px;
+  outline: none;
+  transition: border-color .15s;
+}
+.pg-input:focus { border-color: var(--teal); }
+
+.pg-select {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 7px 10px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.pg-log {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  min-height: 80px;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+
+.log-line { display: flex; gap: 8px; }
+.log-time { color: var(--muted); }
+.log-ok { color: var(--green); }
+.log-err { color: var(--red); }
+.log-info { color: var(--sky); }
+
+/* ══════════════════════════════ QUIZ ══════════════════════════════ */
+.quiz-wrap { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+
+.qcard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.qcard h4 {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--bright);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.qopts { display: flex; flex-direction: column; gap: 6px; }
+
+.qopt {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 8px 12px;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.qopt:hover { border-color: var(--teal); color: var(--teal); }
+.qopt.correct { border-color: var(--green); background: rgba(107,203,119,.1); color: var(--green); }
+.qopt.wrong   { border-color: var(--red);   background: rgba(255,107,107,.1); color: var(--red); }
+
+.qfeedback {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  display: none;
+  line-height: 1.5;
+}
+.qfeedback.show { display: block; }
+.qfeedback.pass { background: rgba(107,203,119,.1); color: var(--green); border: 1px solid rgba(107,203,119,.25); }
+.qfeedback.fail { background: rgba(255,107,107,.1); color: var(--red);   border: 1px solid rgba(255,107,107,.25); }
+
+/* ══════════════════════════════ CHEATSHEET ══════════════════════════════ */
+.cheat-wrap { padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+
+.cheat-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cheat-block-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+}
+
+.cheat-code {
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.79rem;
+  line-height: 1.85;
+  overflow-x: auto;
+}
+
+/* ANIMATIONS */
+@keyframes nodeIn {
+  from { opacity: 0; transform: translateY(-20px) scale(.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes nodePulse {
+  0%,100% { box-shadow: 0 0 6px rgba(78,201,176,.3); }
+  50%      { box-shadow: 0 0 20px rgba(78,201,176,.7); }
+}
+@keyframes arrowDraw {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+.node-wrap.animate-in .node { animation: nodeIn .4s ease both; }
+.node.pulse { animation: nodePulse .8s ease 2; }
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fade-slide { animation: fadeSlide .3s ease both; }
+
+/* responsive */
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .main { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <span>struct</span> Node <span class="ptr">*</span>head<span class="op">;</span>
+    </div>
+    <div class="header-sub">Linked List in C — Interactive Visualizer</div>
+  </header>
+
+  <!-- TAB BAR -->
+  <div class="tabbar" id="tabbar">
+    <button class="active" onclick="setTab('learn')">① Learn</button>
+    <button onclick="setTab('playground')">② Playground</button>
+    <button onclick="setTab('memory')">③ Memory</button>
+    <button onclick="setTab('cheat')">④ Cheatsheet</button>
+    <button onclick="setTab('quiz')">⑤ Quiz</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-area">
+
+    <!-- SIDEBAR (code) -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-title">
+        <div class="traffic"><div class="t-dot t-r"></div><div class="t-dot t-y"></div><div class="t-dot t-g"></div></div>
+        linked_list.c
+      </div>
+      <div class="code-panel" id="code-panel"></div>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="canvas-area">
+
+      <!-- visualizer (shared across tabs) -->
+      <div class="viz-container" id="viz-container">
+        <div class="ll-stage" id="ll-stage">
+          <svg id="ll-arrows"></svg>
+          <div class="empty-state" id="empty-state">
+            <span style="font-size:1.5rem">∅</span>
+            <span>head = NULL — list is empty</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- explain bar -->
+      <div class="explain-bar" id="explain-bar">
+        <span class="explain-icon">💡</span>
+        <span class="explain-text" id="explain-text">A linked list is a chain of <code>Node</code> structs. Each node holds a <code>data</code> value and a <code>next</code> pointer to the following node. Press <b>Next ▶</b> to begin.</span>
+      </div>
+
+      <!-- tab content area -->
+      <div id="tab-content" style="display:none; flex:1; overflow:auto;"></div>
+
+      <!-- control bar -->
+      <div class="control-bar" id="control-bar">
+        <button class="btn" id="btn-prev" onclick="prevStep()">◀ Prev</button>
+        <div class="dots-row" id="dots-row"></div>
+        <button class="btn primary" id="btn-next" onclick="nextStep()">Next ▶</button>
+        <button class="btn" onclick="resetLesson()">↺ Reset</button>
+        <span class="step-counter" id="step-counter">Step 0</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════════════════
+
+// Fake addresses
+const ADDRS = ['0x2a10','0x2a20','0x2a30','0x2a40','0x2a50','0x2a60','0x2a70','0x2a80'];
+
+// ── CODE SNIPPETS ──────────────────────────────────────
+const CODE_LEARN = [
+  { ln:1,  html: `<span class="kw">typedef</span> <span class="kw">struct</span> <span class="ty">Node</span> {` },
+  { ln:2,  html: `&nbsp;&nbsp;<span class="ty">int</span> <span class="va">data</span><span class="op">;</span>` },
+  { ln:3,  html: `&nbsp;&nbsp;<span class="kw">struct</span> <span class="ty">Node</span> <span class="pt">*next</span><span class="op">;</span>` },
+  { ln:4,  html: `} <span class="ty">Node</span><span class="op">;</span>` },
+  { ln:5,  html: `` },
+  { ln:6,  html: `<span class="ty">Node</span> <span class="pt">*head</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>` },
+  { ln:7,  html: `` },
+  { ln:8,  html: `<span class="cm">// Append to tail</span>` },
+  { ln:9,  html: `<span class="ty">Node</span> <span class="pt">*n1</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">Node</span><span class="op">));</span>` },
+  { ln:10, html: `<span class="va">n1</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">10</span><span class="op">;</span>` },
+  { ln:11, html: `<span class="va">n1</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>` },
+  { ln:12, html: `<span class="pt">head</span> <span class="op">=</span> <span class="va">n1</span><span class="op">;</span>` },
+  { ln:13, html: `` },
+  { ln:14, html: `<span class="cm">// Append second node</span>` },
+  { ln:15, html: `<span class="ty">Node</span> <span class="pt">*n2</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">Node</span><span class="op">));</span>` },
+  { ln:16, html: `<span class="va">n2</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">20</span><span class="op">;</span>` },
+  { ln:17, html: `<span class="va">n2</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>` },
+  { ln:18, html: `<span class="va">n1</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">n2</span><span class="op">;</span>` },
+  { ln:19, html: `` },
+  { ln:20, html: `<span class="cm">// Prepend (insert at head)</span>` },
+  { ln:21, html: `<span class="ty">Node</span> <span class="pt">*n0</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">Node</span><span class="op">));</span>` },
+  { ln:22, html: `<span class="va">n0</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">5</span><span class="op">;</span>` },
+  { ln:23, html: `<span class="va">n0</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="pt">head</span><span class="op">;</span>` },
+  { ln:24, html: `<span class="pt">head</span> <span class="op">=</span> <span class="va">n0</span><span class="op">;</span>` },
+  { ln:25, html: `` },
+  { ln:26, html: `<span class="cm">// Delete head node</span>` },
+  { ln:27, html: `<span class="ty">Node</span> <span class="pt">*tmp</span> <span class="op">=</span> <span class="pt">head</span><span class="op">;</span>` },
+  { ln:28, html: `<span class="pt">head</span> <span class="op">=</span> <span class="pt">head</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>` },
+  { ln:29, html: `<span class="fn">free</span><span class="op">(</span><span class="va">tmp</span><span class="op">);</span>` },
+];
+
+// ── LESSON STEPS ──────────────────────────────────────
+// Each step: { codeLine (0-indexed), explain, nodes[], labels[], highlights[] }
+const STEPS = [
+  {
+    code: -1,
+    explain: 'A <code>linked list</code> is a sequence of nodes connected by pointers. Unlike arrays, nodes are scattered in memory — each node knows only its own data and where the next node lives.',
+    nodes: [],
+    labels: {},
+    highlights: [],
+  },
+  {
+    code: [0,1,2,3],
+    explain: '<code>struct Node</code> — two fields: <code>data</code> (the value) and <code>next</code> (pointer to the next Node). This self-referential struct is the foundation of every linked list.',
+    nodes: [],
+    labels: {},
+    highlights: [],
+    showStructDiagram: true,
+  },
+  {
+    code: [5],
+    explain: '<code>Node *head = NULL;</code> — <code>head</code> is a pointer that tracks the start of the list. Initialized to <code>NULL</code> → the list is empty.',
+    nodes: [],
+    labels: { head: null },
+    highlights: [],
+  },
+  {
+    code: [8,9,10,11],
+    explain: '<code>malloc(sizeof(Node))</code> allocates a new node on the heap. We set <code>n1->data = 10</code> and <code>n1->next = NULL</code> (no next node yet).',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0], isNew: true }
+    ],
+    labels: { head: null },
+    highlights: [0],
+  },
+  {
+    code: [11],
+    explain: '<code>head = n1;</code> — <code>head</code> now points to the first node. The list has one element: <b>10 → NULL</b>.',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0] }
+    ],
+    labels: { head: 0 },
+    highlights: [0],
+  },
+  {
+    code: [13,14,15,16],
+    explain: 'Allocate a second node <code>n2</code> with <code>data = 20</code> and <code>next = NULL</code>. It floats in heap memory — not yet linked to anything.',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1], isNew: true }
+    ],
+    labels: { head: 0 },
+    highlights: [1],
+  },
+  {
+    code: [17],
+    explain: '<code>n1->next = n2;</code> — link the first node to the second. The <code>next</code> field of node-10 is now the address of node-20. Chain: <b>10 → 20 → NULL</b>.',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 0 },
+    highlights: [0, 1],
+  },
+  {
+    code: [19,20,21,22],
+    explain: 'Prepend: allocate <code>n0</code> with <code>data = 5</code>. Set <code>n0->next = head</code> — point the new node at the current first node.',
+    nodes: [
+      { id: 2, data: 5,  addr: ADDRS[2], isNew: true },
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 0 },
+    highlights: [2],
+    pendingLink: [2, 0],
+  },
+  {
+    code: [23],
+    explain: '<code>head = n0;</code> — update <code>head</code> to point to the new first node. Prepend is O(1) — no traversal needed! Chain: <b>5 → 10 → 20 → NULL</b>.',
+    nodes: [
+      { id: 2, data: 5,  addr: ADDRS[2] },
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 2 },
+    highlights: [2],
+  },
+  {
+    code: [25,26],
+    explain: 'Delete head: <code>tmp = head</code> — save a pointer to the current head so we can free it. <code>head = head->next</code> — advance head to the second node.',
+    nodes: [
+      { id: 2, data: 5,  addr: ADDRS[2], isDel: true },
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 0 },
+    highlights: [2],
+    deletingNode: 2,
+  },
+  {
+    code: [27,28],
+    explain: '<code>free(tmp);</code> — releases the memory of the old head node (node-5). It is gone from the heap. Chain is now: <b>10 → 20 → NULL</b>.',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 0 },
+    highlights: [0],
+  },
+  {
+    code: -1,
+    explain: '✅ <b>Done!</b> You\'ve seen: <code>struct Node</code> definition, appending, prepending, and deleting the head. Switch to <b>Playground</b> to build your own list, or check the <b>Memory</b> tab for raw addresses.',
+    nodes: [
+      { id: 0, data: 10, addr: ADDRS[0] },
+      { id: 1, data: 20, addr: ADDRS[1] }
+    ],
+    labels: { head: 0 },
+    highlights: [],
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let curStep = 0;
+let currentTab = 'learn';
+
+// Playground state
+let pgList = []; // { data, addr }
+let pgAddrIdx = 0;
+let pgLog = [];
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+
+function renderCodePanel(highlightLines) {
+  const panel = document.getElementById('code-panel');
+  panel.innerHTML = CODE_LEARN.map((row, i) => {
+    const isHL = Array.isArray(highlightLines) && highlightLines.includes(i);
+    return `<div class="c-line ${isHL ? 'hl' : ''}" id="cline-${i}">
+      <span class="ln">${row.ln}</span>
+      <span class="ct">${row.html}</span>
+    </div>`;
+  }).join('');
+
+  // Scroll highlighted line into view
+  if (Array.isArray(highlightLines) && highlightLines.length) {
+    const el = document.getElementById('cline-' + highlightLines[0]);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ── NODE DIAGRAM ──────────────────────────────────────
+function renderLL(nodes, labels, highlights, deletingNode, pendingLink) {
+  const stage = document.getElementById('ll-stage');
+  const emptyState = document.getElementById('empty-state');
+  const svg = document.getElementById('ll-arrows');
+
+  // Clear dynamic children except svg and empty state
+  Array.from(stage.children).forEach(c => {
+    if (c.id !== 'll-arrows' && c.id !== 'empty-state') c.remove();
+  });
+  svg.innerHTML = '';
+
+  if (!nodes || nodes.length === 0) {
+    emptyState.style.display = '';
+    stage.style.minWidth = '300px';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  const NODE_W = 140;
+  const NODE_H = 62;
+  const GAP = 64;
+  const START_X = 40;
+  const Y = 80;
+
+  const totalW = nodes.length * (NODE_W + GAP) + START_X + 80;
+  stage.style.minWidth = totalW + 'px';
+  stage.style.minHeight = '160px';
+
+  const headNodeId = labels && labels.head !== null && labels.head !== undefined ? labels.head : null;
+  const nodePositions = {};
+
+  nodes.forEach((node, i) => {
+    const x = START_X + i * (NODE_W + GAP);
+    nodePositions[node.id] = { x, y: Y };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'node-wrap animate-in';
+    wrap.id = `nwrap-${node.id}`;
+    wrap.style.left = x + 'px';
+    wrap.style.top = Y + 'px';
+
+    const isHL = highlights && highlights.includes(node.id);
+    const isHead = node.id === headNodeId;
+    const isDel = node.isDel || node.id === deletingNode;
+    const isNew = node.isNew;
+
+    let extraClass = '';
+    if (isDel) extraClass = 'del-node';
+    else if (isNew) extraClass = 'new-node';
+    else if (isHead) extraClass = 'head-node';
+    else if (isHL) extraClass = 'highlight';
+
+    // Find next node index for ptr display
+    const nextNodeIdx = i + 1 < nodes.length ? i + 1 : null;
+    const nextAddr = nextNodeIdx !== null ? nodes[nextNodeIdx].addr : null;
+    const nextDisplay = (pendingLink && pendingLink[0] === node.id && pendingLink[1] !== undefined)
+      ? nodes.find(n => n.id === pendingLink[1])?.addr || 'NULL'
+      : nextAddr || 'NULL';
+
+    const isNullNext = nextDisplay === 'NULL';
+
+    wrap.innerHTML = `
+      ${isHead ? `<div class="pointer-label head-lbl">head →</div>` : ''}
+      <div class="node ${extraClass}" id="node-${node.id}">
+        <div class="node-data">
+          <span class="node-field-label">data</span>
+          <span class="node-value">${node.data}</span>
+        </div>
+        <div class="node-next">
+          <span class="node-field-label">next</span>
+          ${isNullNext
+            ? `<span class="node-null">NULL</span>`
+            : `<span class="node-ptr-val">${nextDisplay}</span>`
+          }
+        </div>
+      </div>
+      <span class="addr-badge">${node.addr}</span>
+    `;
+
+    stage.appendChild(wrap);
+  });
+
+  // Draw arrows AFTER DOM paint
+  requestAnimationFrame(() => {
+    nodes.forEach((node, i) => {
+      const fromEl = document.getElementById('node-' + node.id);
+      if (!fromEl) return;
+      const fromRect = fromEl.getBoundingClientRect();
+      const stageRect = stage.getBoundingClientRect();
+
+      const x1 = nodePositions[node.id].x + NODE_W;
+      const y1 = nodePositions[node.id].y + NODE_H / 2;
+
+      // Determine target
+      const hasLink = (pendingLink && pendingLink[0] === node.id);
+      const toId = hasLink ? pendingLink[1] : (i + 1 < nodes.length ? nodes[i+1].id : null);
+
+      if (toId !== null && nodePositions[toId]) {
+        const x2 = nodePositions[toId].x;
+        const y2 = nodePositions[toId].y + NODE_H / 2;
+
+        drawArrow(svg, x1, y1, x2, y2, node.isDel || node.id === deletingNode ? '#ff6b6b' : '#f48c7f');
+      } else if (i === nodes.length - 1) {
+        // NULL arrow
+        const nullX = nodePositions[node.id].x + NODE_W + 10;
+        const nullY = nodePositions[node.id].y + NODE_H / 2;
+        drawNullArrow(svg, x1, y1);
+      }
+    });
+  });
+}
+
+function drawArrow(svg, x1, y1, x2, y2, color = '#f48c7f') {
+  const defs = svg.querySelector('defs') || (() => {
+    const d = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    svg.appendChild(d); return d;
+  })();
+
+  const id = 'ah-' + Math.random().toString(36).slice(2,6);
+  defs.innerHTML += `<marker id="${id}" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0,8 3,0 6" fill="${color}"/>
+  </marker>`;
+
+  const gap = 8;
+  const curve = Math.abs(y2 - y1) < 5 ? 0 : 20;
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  const mx = (x1 + gap + x2 - gap) / 2;
+  path.setAttribute('d', `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2 - 4} ${y2}`);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width','1.8');
+  path.setAttribute('marker-end',`url(#${id})`);
+  path.setAttribute('stroke-dasharray','200');
+  path.setAttribute('stroke-dashoffset','200');
+  path.style.animation = 'arrowDraw .4s ease forwards .15s';
+  svg.appendChild(path);
+}
+
+function drawNullArrow(svg, x1, y1) {
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x1 + 30); line.setAttribute('y2', y1);
+  line.setAttribute('stroke','#5a5a6a'); line.setAttribute('stroke-width','1.5');
+  line.setAttribute('stroke-dasharray','4,3');
+  svg.appendChild(line);
+
+  const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+  text.setAttribute('x', x1 + 34); text.setAttribute('y', y1 + 4);
+  text.setAttribute('fill','#5a5a6a'); text.setAttribute('font-family','IBM Plex Mono,monospace');
+  text.setAttribute('font-size','11'); text.setAttribute('font-weight','600');
+  text.textContent = 'NULL';
+  svg.appendChild(text);
+}
+
+// ═══════════════════════════════════════════════════════
+// LESSON STEP NAVIGATION
+// ═══════════════════════════════════════════════════════
+
+function applyStep(idx) {
+  const step = STEPS[idx];
+  renderCodePanel(step.code === -1 ? [] : step.code);
+  renderLL(step.nodes, step.labels, step.highlights, step.deletingNode, step.pendingLink);
+
+  const explainEl = document.getElementById('explain-text');
+  explainEl.innerHTML = step.explain;
+  explainEl.classList.remove('fade-slide');
+  void explainEl.offsetWidth;
+  explainEl.classList.add('fade-slide');
+
+  // Buttons
+  document.getElementById('btn-prev').disabled = idx === 0;
+  document.getElementById('btn-next').disabled = idx === STEPS.length - 1;
+  document.getElementById('step-counter').textContent = `Step ${idx} / ${STEPS.length - 1}`;
+
+  // Dots
+  const dotsRow = document.getElementById('dots-row');
+  dotsRow.innerHTML = '';
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'step-dot' + (i < idx ? ' done' : i === idx ? ' cur' : '');
+    dotsRow.appendChild(d);
+  });
+}
+
+function nextStep() {
+  if (curStep < STEPS.length - 1) { curStep++; applyStep(curStep); }
+}
+
+function prevStep() {
+  if (curStep > 0) { curStep--; applyStep(curStep); }
+}
+
+function resetLesson() {
+  curStep = 0;
+  applyStep(0);
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+
+function setTab(tab) {
+  currentTab = tab;
+
+  // Update buttons
+  document.querySelectorAll('.tabbar button').forEach((b, i) => {
+    b.classList.toggle('active', ['learn','playground','memory','cheat','quiz'][i] === tab);
+  });
+
+  const tcEl = document.getElementById('tab-content');
+  const vizEl = document.getElementById('viz-container');
+  const explainEl = document.getElementById('explain-bar');
+  const controlEl = document.getElementById('control-bar');
+  const sidebarEl = document.getElementById('sidebar');
+
+  if (tab === 'learn') {
+    vizEl.style.display = '';
+    explainEl.style.display = '';
+    controlEl.style.display = '';
+    tcEl.style.display = 'none';
+    sidebarEl.style.display = '';
+    applyStep(curStep);
+  } else if (tab === 'playground') {
+    vizEl.style.display = '';
+    explainEl.style.display = 'none';
+    controlEl.style.display = 'none';
+    tcEl.style.display = '';
+    sidebarEl.style.display = 'none';
+    renderPlayground();
+    renderPgList();
+  } else if (tab === 'memory') {
+    vizEl.style.display = '';
+    explainEl.style.display = 'none';
+    controlEl.style.display = 'none';
+    tcEl.style.display = '';
+    sidebarEl.style.display = 'none';
+    renderMemTab();
+    renderPgList();
+  } else if (tab === 'cheat') {
+    vizEl.style.display = 'none';
+    explainEl.style.display = 'none';
+    controlEl.style.display = 'none';
+    sidebarEl.style.display = 'none';
+    tcEl.style.display = '';
+    renderCheat();
+  } else if (tab === 'quiz') {
+    vizEl.style.display = 'none';
+    explainEl.style.display = 'none';
+    controlEl.style.display = 'none';
+    sidebarEl.style.display = 'none';
+    tcEl.style.display = '';
+    renderQuiz();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAYGROUND
+// ═══════════════════════════════════════════════════════
+
+function pgAddrOf(idx) {
+  return '0x' + (0x3000 + idx * 0x10).toString(16).toUpperCase();
+}
+
+function renderPgList() {
+  const nodes = pgList.map((item, i) => ({
+    id: i, data: item.data, addr: item.addr
+  }));
+  const labels = pgList.length > 0 ? { head: 0 } : { head: null };
+  renderLL(nodes, labels, [], null, null);
+}
+
+function pgAppend(val) {
+  if (isNaN(val)) return pgAddLog('Invalid value', 'err');
+  const addr = pgAddrOf(pgAddrIdx++);
+  pgList.push({ data: val, addr });
+  pgAddLog(`append(${val}) → node at ${addr}`, 'ok');
+  renderPgList();
+}
+
+function pgPrepend(val) {
+  if (isNaN(val)) return pgAddLog('Invalid value', 'err');
+  const addr = pgAddrOf(pgAddrIdx++);
+  pgList.unshift({ data: val, addr });
+  pgAddLog(`prepend(${val}) → node at ${addr}, new head`, 'ok');
+  renderPgList();
+  if (currentTab === 'memory') renderMemTab();
+}
+
+function pgDeleteHead() {
+  if (pgList.length === 0) return pgAddLog('List is empty — nothing to delete', 'err');
+  const old = pgList.shift();
+  pgAddLog(`free(head) — removed node(${old.data}) at ${old.addr}`, 'ok');
+  renderPgList();
+  if (currentTab === 'memory') renderMemTab();
+}
+
+function pgDeleteTail() {
+  if (pgList.length === 0) return pgAddLog('List is empty — nothing to delete', 'err');
+  const old = pgList.pop();
+  pgAddLog(`free(tail) — removed node(${old.data}) at ${old.addr}`, 'ok');
+  renderPgList();
+  if (currentTab === 'memory') renderMemTab();
+}
+
+function pgDeleteAt(idx) {
+  if (idx < 0 || idx >= pgList.length) return pgAddLog(`Index ${idx} out of range (0..${pgList.length-1})`, 'err');
+  const old = pgList.splice(idx, 1)[0];
+  pgAddLog(`delete index ${idx} — removed node(${old.data}) at ${old.addr}`, 'ok');
+  renderPgList();
+  if (currentTab === 'memory') renderMemTab();
+}
+
+function pgSearch(val) {
+  const idx = pgList.findIndex(n => n.data === val);
+  if (idx === -1) {
+    pgAddLog(`search(${val}) — not found after traversing ${pgList.length} nodes`, 'info');
+  } else {
+    pgAddLog(`search(${val}) — found at index ${idx}, addr ${pgList[idx].addr}`, 'ok');
+    // Highlight
+    const nodes = pgList.map((item, i) => ({ id: i, data: item.data, addr: item.addr }));
+    const labels = pgList.length > 0 ? { head: 0 } : { head: null };
+    renderLL(nodes, labels, [idx], null, null);
+  }
+}
+
+function pgReverse() {
+  if (pgList.length < 2) return pgAddLog('Need at least 2 nodes to reverse', 'err');
+  pgList.reverse();
+  pgAddLog(`reversed list — new head is node(${pgList[0].data})`, 'ok');
+  renderPgList();
+}
+
+function pgClear() {
+  pgList = [];
+  pgAddrIdx = 0;
+  pgAddLog('free all — list cleared', 'ok');
+  renderPgList();
+  if (currentTab === 'memory') renderMemTab();
+}
+
+function pgAddLog(msg, type) {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  pgLog.unshift({ ts, msg, type });
+  if (pgLog.length > 30) pgLog.pop();
+  const logEl = document.getElementById('pg-log');
+  if (logEl) {
+    logEl.innerHTML = pgLog.map(l =>
+      `<div class="log-line"><span class="log-time">${l.ts}</span><span class="log-${l.type}">${l.msg}</span></div>`
+    ).join('');
+  }
+}
+
+function renderPlayground() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `
+    <div class="playground">
+      <div>
+        <div class="pg-section-title">Insert</div>
+        <div class="pg-row">
+          <input class="pg-input" id="pg-val" type="number" placeholder="value" min="-999" max="999">
+          <button class="btn primary" onclick="pgAppend(parseInt(document.getElementById('pg-val').value))">Append Tail</button>
+          <button class="btn" onclick="pgPrepend(parseInt(document.getElementById('pg-val').value))">Prepend Head</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="pg-section-title">Delete</div>
+        <div class="pg-row">
+          <button class="btn danger" onclick="pgDeleteHead()">Delete Head</button>
+          <button class="btn danger" onclick="pgDeleteTail()">Delete Tail</button>
+          <input class="pg-input" id="pg-del-idx" type="number" placeholder="index" min="0">
+          <button class="btn danger" onclick="pgDeleteAt(parseInt(document.getElementById('pg-del-idx').value))">Delete at Index</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="pg-section-title">Operations</div>
+        <div class="pg-row">
+          <input class="pg-input" id="pg-search" type="number" placeholder="value">
+          <button class="btn" onclick="pgSearch(parseInt(document.getElementById('pg-search').value))">🔍 Search</button>
+          <button class="btn" onclick="pgReverse()">⇄ Reverse</button>
+          <button class="btn danger" onclick="pgClear()">🗑 Clear All</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="pg-section-title">Output Log</div>
+        <div class="pg-log" id="pg-log">
+          <div class="log-line"><span class="log-time">--:--:--</span><span class="log-info">Playground ready. Use the controls above to build your linked list.</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Enter key support
+  document.getElementById('pg-val').addEventListener('keydown', e => {
+    if (e.key === 'Enter') pgAppend(parseInt(e.target.value));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// MEMORY TABLE
+// ═══════════════════════════════════════════════════════
+
+function renderMemTab() {
+  const tc = document.getElementById('tab-content');
+  if (!pgList.length) {
+    tc.innerHTML = `<div class="mem-table-wrap"><p style="font-family:var(--font-mono);color:var(--muted);font-size:.82rem;">List is empty. Add nodes in the <b>Playground</b> tab first.</p></div>`;
+    return;
+  }
+
+  const rows = pgList.map((node, i) => {
+    const nextAddr = i + 1 < pgList.length ? pgList[i+1].addr : 'NULL';
+    const isHead = i === 0;
+    const isTail = i === pgList.length - 1;
+    return `<tr>
+      <td class="addr">${node.addr}</td>
+      <td class="vname">node_${i}</td>
+      <td class="val">${node.data}</td>
+      <td class="ptr-v">${nextAddr}</td>
+      <td class="note">${isHead ? '← head' : ''}${isTail ? '← tail / NULL terminator' : ''}</td>
+    </tr>`;
+  }).join('');
+
+  tc.innerHTML = `
+    <div class="mem-table-wrap">
+      <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:14px;">Heap memory layout — each row is one <code style="color:var(--teal)">Node</code> struct (8–16 bytes depending on architecture)</p>
+      <table class="mem-table">
+        <thead><tr>
+          <th>Address</th>
+          <th>Variable</th>
+          <th>data (int)</th>
+          <th>next (Node*)</th>
+          <th>Notes</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted);margin-top:14px;">
+        head → ${pgList[0].addr} &nbsp;|&nbsp; 
+        Length: ${pgList.length} node${pgList.length !== 1 ? 's' : ''} &nbsp;|&nbsp;
+        Traversal: O(n) &nbsp;|&nbsp; Insert at head: O(1)
+      </p>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// CHEATSHEET
+// ═══════════════════════════════════════════════════════
+
+function renderCheat() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="cheat-wrap">
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Struct Definition</div>
+      <div class="cheat-code"><span class="kw">typedef</span> <span class="kw">struct</span> <span class="ty">Node</span> {
+  <span class="ty">int</span>   <span class="va">data</span><span class="op">;</span>
+  <span class="kw">struct</span> <span class="ty">Node</span> <span class="pt">*next</span><span class="op">;</span>
+} <span class="ty">Node</span><span class="op">;</span></div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Create a Node</div>
+      <div class="cheat-code"><span class="ty">Node</span> <span class="pt">*newNode</span><span class="op">(</span><span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">Node</span><span class="op">));</span>
+  <span class="va">n</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="va">val</span><span class="op">;</span>
+  <span class="va">n</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>
+  <span class="kw">return</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Prepend — O(1)</div>
+      <div class="cheat-code"><span class="ty">void</span> <span class="fn">prepend</span><span class="op">(</span><span class="ty">Node</span> <span class="pt">**head</span><span class="op">,</span> <span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">newNode</span><span class="op">(</span><span class="va">val</span><span class="op">);</span>
+  <span class="va">n</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="pt">*head</span><span class="op">;</span>
+  <span class="pt">*head</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Append — O(n)</div>
+      <div class="cheat-code"><span class="ty">void</span> <span class="fn">append</span><span class="op">(</span><span class="ty">Node</span> <span class="pt">**head</span><span class="op">,</span> <span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">newNode</span><span class="op">(</span><span class="va">val</span><span class="op">);</span>
+  <span class="kw">if</span> <span class="op">(!</span><span class="pt">*head</span><span class="op">)</span> { <span class="pt">*head</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span> <span class="kw">return</span><span class="op">;</span> }
+  <span class="ty">Node</span> <span class="pt">*cur</span> <span class="op">=</span> <span class="pt">*head</span><span class="op">;</span>
+  <span class="kw">while</span> <span class="op">(</span><span class="va">cur</span><span class="ar">-></span><span class="pt">next</span><span class="op">)</span> <span class="va">cur</span> <span class="op">=</span> <span class="va">cur</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+  <span class="va">cur</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Delete Head — O(1)</div>
+      <div class="cheat-code"><span class="ty">void</span> <span class="fn">deleteHead</span><span class="op">(</span><span class="ty">Node</span> <span class="pt">**head</span><span class="op">)</span> {
+  <span class="kw">if</span> <span class="op">(!</span><span class="pt">*head</span><span class="op">)</span> <span class="kw">return</span><span class="op">;</span>
+  <span class="ty">Node</span> <span class="pt">*tmp</span> <span class="op">=</span> <span class="pt">*head</span><span class="op">;</span>
+  <span class="pt">*head</span> <span class="op">=</span> <span class="pt">(*head)</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+  <span class="fn">free</span><span class="op">(</span><span class="va">tmp</span><span class="op">);</span>
+}</div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Traverse / Print — O(n)</div>
+      <div class="cheat-code"><span class="ty">void</span> <span class="fn">printList</span><span class="op">(</span><span class="ty">Node</span> <span class="pt">*head</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*cur</span> <span class="op">=</span> <span class="va">head</span><span class="op">;</span>
+  <span class="kw">while</span> <span class="op">(</span><span class="va">cur</span><span class="op">)</span> {
+    <span class="fn">printf</span><span class="op">(</span><span class="st">"%d → "</span><span class="op">,</span> <span class="va">cur</span><span class="ar">-></span><span class="va">data</span><span class="op">);</span>
+    <span class="va">cur</span> <span class="op">=</span> <span class="va">cur</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+  }
+  <span class="fn">printf</span><span class="op">(</span><span class="st">"NULL\\n"</span><span class="op">);</span>
+}</div>
+    </div>
+
+    <div class="cheat-block">
+      <div class="cheat-block-title">Free Entire List</div>
+      <div class="cheat-code"><span class="ty">void</span> <span class="fn">freeList</span><span class="op">(</span><span class="ty">Node</span> <span class="pt">**head</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*cur</span> <span class="op">=</span> <span class="pt">*head</span><span class="op">;</span>
+  <span class="kw">while</span> <span class="op">(</span><span class="va">cur</span><span class="op">)</span> {
+    <span class="ty">Node</span> <span class="pt">*next</span> <span class="op">=</span> <span class="va">cur</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+    <span class="fn">free</span><span class="op">(</span><span class="va">cur</span><span class="op">);</span>
+    <span class="va">cur</span> <span class="op">=</span> <span class="pt">next</span><span class="op">;</span>
+  }
+  <span class="pt">*head</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>
+}</div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;">
+      <div class="pg-section-title" style="margin-bottom:10px">Complexity Summary</div>
+      <table class="mem-table" style="font-size:.75rem;">
+        <thead><tr><th>Operation</th><th>Time</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--teal)">Access by index</td><td style="color:var(--amber)">O(n)</td><td style="color:var(--muted)">Must traverse from head</td></tr>
+          <tr><td style="color:var(--teal)">Search</td><td style="color:var(--amber)">O(n)</td><td style="color:var(--muted)">No random access</td></tr>
+          <tr><td style="color:var(--teal)">Insert at head</td><td style="color:var(--green)">O(1)</td><td style="color:var(--muted)">Just update head pointer</td></tr>
+          <tr><td style="color:var(--teal)">Insert at tail</td><td style="color:var(--amber)">O(n)</td><td style="color:var(--muted)">O(1) with tail pointer</td></tr>
+          <tr><td style="color:var(--teal)">Delete at head</td><td style="color:var(--green)">O(1)</td><td style="color:var(--muted)">Just update head pointer</td></tr>
+          <tr><td style="color:var(--teal)">Delete at tail</td><td style="color:var(--amber)">O(n)</td><td style="color:var(--muted)">Need to find prev node</td></tr>
+          <tr><td style="color:var(--teal)">Space</td><td style="color:var(--sky)">O(n)</td><td style="color:var(--muted)">Extra pointer per node</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════════════════
+
+const QUIZ = [
+  {
+    q: 'What does head = NULL mean for a linked list?',
+    opts: ['head points to an empty node', 'The list exists but has no data', 'The list is empty — no nodes allocated', 'NULL is an invalid pointer value'],
+    ans: 2, exp: 'When head is NULL, there are no nodes in the list. It\'s the canonical way to represent an empty linked list in C.'
+  },
+  {
+    q: 'What is the time complexity of inserting at the head of a linked list?',
+    opts: ['O(n)', 'O(log n)', 'O(1)', 'O(n²)'],
+    ans: 2, exp: 'Inserting at the head only requires updating the head pointer — no traversal needed. Always O(1).'
+  },
+  {
+    q: 'Why must you keep a `tmp` pointer before deleting the head node?\n  Node *tmp = head;\n  head = head->next;\n  free(tmp);',
+    opts: [
+      'To traverse to the next node',
+      'To avoid freeing head->next accidentally',
+      'To hold the address so you can free the old head after moving head forward',
+      'tmp is optional — free(head) works fine directly'
+    ],
+    ans: 2, exp: 'After head = head->next, the original head address is lost. tmp preserves it so free() can correctly release that memory.'
+  },
+  {
+    q: 'What does the -> operator mean in C?\n  node->data = 42;',
+    opts: [
+      'Dereference a pointer and access its member',
+      'Assign a pointer to another pointer',
+      'Declare a new struct field',
+      'Add the value 42 to node'
+    ],
+    ans: 0, exp: 'node->data is shorthand for (*node).data — dereference the pointer then access the field. It\'s the standard way to access struct members through a pointer.'
+  },
+  {
+    q: 'What happens if you call free() on a node but keep using its pointer?',
+    opts: [
+      'The value resets to 0 safely',
+      'Creates a dangling pointer — undefined behavior',
+      'The OS will catch the error',
+      'Nothing, freed memory is still readable'
+    ],
+    ans: 1, exp: 'This is a dangling pointer — using freed memory is undefined behavior. Always set the pointer to NULL after freeing: free(ptr); ptr = NULL;'
+  },
+  {
+    q: 'To append to the tail, what must you do first?',
+    opts: [
+      'Allocate a new node at index 0',
+      'Set head = new_node directly',
+      'Traverse the list until cur->next == NULL',
+      'Call realloc() on the existing list'
+    ],
+    ans: 2, exp: 'Unlike arrays, a linked list has no direct tail access (unless you maintain a tail pointer). You must walk from head until cur->next is NULL, then link the new node there.'
+  },
+  {
+    q: 'What is the correct way to declare a pointer to a linked list node struct that points to itself?',
+    opts: [
+      'struct Node { int data; Node *next; };',
+      'typedef struct Node { int data; struct Node *next; } Node;',
+      'struct Node { int data; int *next; };',
+      'typedef Node { int data; Node *next; };'
+    ],
+    ans: 1, exp: 'You must use `struct Node *next` (not just `Node *next`) inside the struct body, because the typedef isn\'t complete yet at that point. The typedef gives you the shorthand `Node` for use outside.'
+  },
+];
+
+let quizState = new Array(QUIZ.length).fill(null);
+
+function renderQuiz() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="quiz-wrap" id="quiz-inner">
+    ${QUIZ.map((q, qi) => `
+      <div class="qcard">
+        <h4><span style="color:var(--violet)">Q${qi+1}.</span> ${q.q.replace(/\n/g,'<br><br>')}</h4>
+        <div class="qopts">
+          ${q.opts.map((opt, oi) => `
+            <button class="qopt" id="qo-${qi}-${oi}" onclick="answerQ(${qi},${oi})">${['A','B','C','D'][oi]}. ${opt}</button>
+          `).join('')}
+        </div>
+        <div class="qfeedback" id="qfb-${qi}"></div>
+      </div>
+    `).join('')}
+    <div style="display:flex;gap:12px;align-items:center;margin-top:4px;">
+      <button class="btn" onclick="resetQuizData()">↺ Restart Quiz</button>
+      <span id="quiz-score" style="font-family:var(--font-mono);font-size:.8rem;color:var(--muted)"></span>
+    </div>
+  </div>`;
+
+  // Re-apply existing answers
+  quizState.forEach((ans, qi) => {
+    if (ans !== null) applyQuizAnswer(qi, ans);
+  });
+}
+
+function answerQ(qi, oi) {
+  if (quizState[qi] !== null) return;
+  quizState[qi] = oi;
+  applyQuizAnswer(qi, oi);
+  updateQuizScore();
+}
+
+function applyQuizAnswer(qi, oi) {
+  const q = QUIZ[qi];
+  document.querySelectorAll(`[id^="qo-${qi}-"]`).forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.ans) btn.classList.add('correct');
+    else if (i === oi) btn.classList.add('wrong');
+  });
+  const fb = document.getElementById('qfb-' + qi);
+  if (!fb) return;
+  fb.textContent = (oi === q.ans ? '✓ Correct! ' : '✗ Wrong. ') + q.exp;
+  fb.className = 'qfeedback show ' + (oi === q.ans ? 'pass' : 'fail');
+}
+
+function updateQuizScore() {
+  const answered = quizState.filter(a => a !== null).length;
+  const correct  = quizState.filter((a, i) => a === QUIZ[i].ans).length;
+  const el = document.getElementById('quiz-score');
+  if (el && answered === QUIZ.length) {
+    el.textContent = `Score: ${correct} / ${QUIZ.length}`;
+    el.style.color = correct >= QUIZ.length * 0.7 ? 'var(--green)' : 'var(--coral)';
+  }
+}
+
+function resetQuizData() {
+  quizState = new Array(QUIZ.length).fill(null);
+  renderQuiz();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+// Pre-seed playground with a small demo list
+pgList = [
+  { data: 12, addr: pgAddrOf(pgAddrIdx++) },
+  { data: 37, addr: pgAddrOf(pgAddrIdx++) },
+  { data: 55, addr: pgAddrOf(pgAddrIdx++) },
+];
+pgAddLog('Demo list initialized: 12 → 37 → 55', 'info');
+
+// Kick off learn tab
+renderCodePanel([]);
+applyStep(0);
+
+</script>
+</body>
+</html>
