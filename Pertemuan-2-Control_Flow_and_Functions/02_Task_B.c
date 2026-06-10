@@ -1,6 +1,6 @@
 /*
  * Pertemuan 2 -- Task B: Tulis Fungsimu Sendiri
- * Topik   : Functions & Rekursi Dasar
+ * Topik   : Functions (kasus dunia nyata: kalkulator BMI & progres tabungan)
  * Nama    : ___________________________
  * Tanggal : ___________________________
  *
@@ -14,82 +14,96 @@
  * Jalankan: ./02_Task_B  (Linux/Mac)  atau  02_Task_B.exe  (Windows)
  *
  * Expected Output:
- *   === Persegi Panjang (panjang=5, lebar=3) ===
- *   Luas     : 15
- *   Keliling : 16
+ *   === Kalkulator BMI ===
+ *   Orang A (berat=60.0 kg, tinggi=1.70 m)
+ *   BMI: 20.8
+ *   Kategori: Normal
  *
- *   === Tabel Perkalian 4 ===
- *   4 x  1 =  4
- *   4 x  2 =  8
- *   4 x  3 = 12
- *   4 x  4 = 16
- *   4 x  5 = 20
- *   4 x  6 = 24
- *   4 x  7 = 28
- *   4 x  8 = 32
- *   4 x  9 = 36
- *   4 x 10 = 40
+ *   Orang B (berat=85.0 kg, tinggi=1.70 m)
+ *   BMI: 29.4
+ *   Kategori: Gemuk
+ *
+ *   === Progres Tabungan (setoran 500000/bulan) ===
+ *   Bulan 1: 500000
+ *   Bulan 2: 1000000
+ *   Bulan 3: 1500000
+ *   Bulan 4: 2000000
  */
 
 #include <stdio.h>
 
 
 /* ==============================================================
- * Fungsi 1: hitung_luas
+ * Fungsi 1: hitung_bmi
  *
- * TUGAS: Kembalikan luas persegi panjang.
+ * TUGAS: Kembalikan nilai BMI (Body Mass Index) seseorang.
  *
- * Parameter : panjang (int), lebar (int)
- * Return    : luas (int)
- * Rumus     : panjang * lebar
+ * Parameter : berat (float, dalam kg), tinggi (float, dalam meter)
+ * Return    : bmi (float)
+ * Rumus     : berat / (tinggi * tinggi)
  *
- * Contoh    : hitung_luas(5, 3) -> 15
+ * Contoh    : hitung_bmi(60.0, 1.70) -> 20.76...
+ *
+ * Petunjuk  : kedua parameter sudah float, jadi pembagiannya otomatis
+ *             menghasilkan desimal (tidak terkena jebakan pembagian bulat).
  * ============================================================== */
-int hitung_luas(int panjang, int lebar) {
-    /* Tulis satu baris: return hasil perkalian panjang dan lebar */
+float hitung_bmi(float berat, float tinggi) {
+    /* TODO: return berat dibagi (tinggi * tinggi) */
 
 }
 
 
 /* ==============================================================
- * Fungsi 2: hitung_keliling
+ * Fungsi 2: cetak_kategori_bmi
  *
- * TUGAS: Kembalikan keliling persegi panjang.
+ * TUGAS: Cetak kategori berat badan berdasarkan nilai BMI.
  *
- * Parameter : panjang (int), lebar (int)
- * Return    : keliling (int)
- * Rumus     : 2 * (panjang + lebar)
+ * Parameter : bmi (float)
+ * Return    : void (tidak mengembalikan nilai, hanya mencetak)
  *
- * Contoh    : hitung_keliling(5, 3) -> 16
+ * Ketentuan kategori:
+ *   bmi < 18.5            -> "Kategori: Kurus"
+ *   18.5 <= bmi < 25.0    -> "Kategori: Normal"
+ *   25.0 <= bmi < 30.0    -> "Kategori: Gemuk"
+ *   bmi >= 30.0           -> "Kategori: Obesitas"
+ *
+ * Contoh    : cetak_kategori_bmi(20.8) mencetak "Kategori: Normal"
+ *
+ * Petunjuk  : gunakan if / else if / else. Cek dari nilai terkecil ke
+ *             terbesar, atau sebaliknya -- yang penting rentangnya tidak
+ *             tumpang tindih.
  * ============================================================== */
-int hitung_keliling(int panjang, int lebar) {
-    /* Tulis satu baris: return hasil rumus keliling */
+void cetak_kategori_bmi(float bmi) {
+    /* TODO: tulis if / else if / else untuk mencetak kategori */
 
 }
 
 
 /* ==============================================================
- * Fungsi 3: cetak_tabel_perkalian
+ * Fungsi 3: cetak_progres_tabungan
  *
- * TUGAS: Cetak tabel perkalian dari 1 sampai 10 untuk angka tertentu.
+ * TUGAS: Cetak saldo tabungan dari bulan ke bulan, dengan asumsi
+ *        setoran yang sama setiap bulan (tanpa bunga).
  *
- * Parameter : angka (int)
- * Return    : void (tidak mengembalikan nilai)
+ * Parameter : setoran_bulanan (int), jumlah_bulan (int)
+ * Return    : void
  *
- * Contoh output untuk angka = 4:
- *   4 x  1 =  4
- *   4 x  2 =  8
- *   ...
- *   4 x 10 = 40
+ * Contoh output untuk setoran_bulanan=500000, jumlah_bulan=4:
+ *   Bulan 1: 500000
+ *   Bulan 2: 1000000
+ *   Bulan 3: 1500000
+ *   Bulan 4: 2000000
  *
  * Petunjuk:
- *   - Gunakan for loop dengan variabel i dari 1 sampai 10
- *   - Di dalam loop, cetak: angka x i = angka*i
- *   - Gunakan format %2d agar angka satu digit rata kanan
+ *   - Gunakan variabel saldo yang dimulai dari 0.
+ *   - Pakai for loop dari bulan = 1 sampai jumlah_bulan.
+ *   - Di setiap putaran: tambahkan setoran_bulanan ke saldo, lalu cetak.
+ *     Contoh cetak: printf("Bulan %d: %d\n", bulan, saldo);
  * ============================================================== */
-void cetak_tabel_perkalian(int angka) {
-    int i;
-    /* Tulis for loop di sini */
+void cetak_progres_tabungan(int setoran_bulanan, int jumlah_bulan) {
+    int saldo = 0;
+    int bulan;
+    /* TODO: tulis for loop di sini */
 
 }
 
@@ -98,24 +112,25 @@ void cetak_tabel_perkalian(int angka) {
 /* ==============================================================
  * main -- Uji semua fungsi yang sudah kamu tulis
  *
- * TUGAS: Panggil setiap fungsi di bawah dan cetak hasilnya.
- *        Gunakan variabel panjang=5 dan lebar=3.
+ * TUGAS: Panggil setiap fungsi di bawah dan cetak hasilnya sesuai
+ *        Expected Output di bagian atas file.
  *
  * Langkah:
- *   1. Cetak header "=== Persegi Panjang (panjang=5, lebar=3) ==="
- *      lalu panggil hitung_luas dan hitung_keliling, cetak hasilnya.
+ *   1. Cetak header "=== Kalkulator BMI ==="
+ *      - Orang A: berat 60.0, tinggi 1.70 -> hitung_bmi lalu cetak_kategori_bmi
+ *      - Orang B: berat 85.0, tinggi 1.70 -> hitung_bmi lalu cetak_kategori_bmi
+ *      Cetak nilai BMI dengan format %.1f, mis:
+ *        printf("BMI: %.1f\n", hitung_bmi(60.0, 1.70));
  *
- *   2. Cetak header "=== Tabel Perkalian 4 ==="
- *      lalu panggil cetak_tabel_perkalian dengan angka 4.
- *
+ *   2. Cetak header "=== Progres Tabungan (setoran 500000/bulan) ==="
+ *      lalu panggil cetak_progres_tabungan(500000, 4).
  * ============================================================== */
 int main() {
-    int panjang = 5, lebar = 3;
 
-    /* Bagian 1: Persegi Panjang */
+    /* Bagian 1: Kalkulator BMI */
 
 
-    /* Bagian 2: Tabel Perkalian */
+    /* Bagian 2: Progres Tabungan */
 
 
     return 0;

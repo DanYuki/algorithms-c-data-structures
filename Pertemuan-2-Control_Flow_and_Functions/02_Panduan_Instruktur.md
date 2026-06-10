@@ -21,13 +21,18 @@
 - [ ] Contoh `if-else if-else` (kelulusan dengan kategori) — Problem 1 dari plan.
 - [ ] Contoh `switch-case` menu sederhana.
 - [ ] Contoh `for`, `while`, `do-while` masing-masing satu.
-- [ ] Contoh fungsi `hitung_luas` (Bagian A Task B).
+- [ ] Contoh fungsi `hitung_luas` (dari Materi — untuk demo konsep fungsi & DRY).
 - [ ] Contoh fungsi rekursi faktorial — versi loop DAN rekursi sekaligus.
+
+> **Catatan konteks task:** Materi memakai contoh generik (kelulusan, persegi panjang) untuk
+> menjelaskan konsep, sedangkan Task memakai **kasus dunia nyata** (potongan pajak gaji, tarif
+> parkir, kalkulator BMI, progres tabungan) agar siswa melihat penerapan konkretnya. Perbedaan
+> konteks ini disengaja — melatih siswa memindahkan konsep ke situasi baru (transfer of learning).
 
 ### File yang Disiapkan
 - [ ] `02_Materi.md` — bagikan ke siswa di awal sesi.
-- [ ] `02_Task_A.c` — bagikan saat segmen latihan percabangan/loop (sekitar menit 65–90).
-- [ ] `02_Task_B.c` — bagikan saat segmen latihan fungsi/rekursi.
+- [ ] `02_Task_A1.c` (potongan pajak gaji) & `02_Task_A2.c` (tarif parkir) — bagikan saat segmen percabangan (sekitar menit 15–40).
+- [ ] `02_Task_B.c` (kalkulator BMI & progres tabungan) — bagikan saat segmen latihan fungsi (sekitar menit 65–90).
 - [ ] `02_Optional_Task.md` — bagikan di akhir sebagai PR.
 
 ---
@@ -73,122 +78,120 @@
 | Waktu | Segmen | Yang Perlu Ditekankan |
 |-------|--------|-----------------------|
 | 0–15 | **Pembukaan / Recap P1** | Recap singkat: struktur C, tipe data, pseudocode. Jangan melewati kalau banyak yang belum paham. |
-| 15–40 | **Percabangan** | Demo `if/else if/else` dengan Problem 1 (kelulusan). Perkenalkan `switch-case` dengan contoh menu. Tekankan urutan kondisi dan jangan lupa `break`. |
+| 15–40 | **Percabangan** | Demo `if/else if/else` dengan Problem 1 (kelulusan). Perkenalkan `switch-case` dengan contoh menu. Tekankan urutan kondisi dan jangan lupa `break`. Bagikan `02_Task_A1.c` (pajak gaji) & `02_Task_A2.c` (tarif parkir). |
 | 40–65 | **Perulangan** | Demo ketiga loop dengan contoh berbeda. Tunjukkan `break` dan `continue`. Sengaja buat infinite loop untuk demo. |
-| 65–90 | **Fungsi** | Demo `hitung_luas` (versi tanpa fungsi → dengan fungsi). Jelaskan `void`. Tunjukkan prototype. Bagikan `02_Task_A.c`. |
-| 90–105 | **Rekursi** | Gambar call stack faktorial(4) di whiteboard. Demo versi loop vs rekursi berdampingan. Bagikan `02_Task_B.c`. |
+| 65–90 | **Fungsi** | Demo `hitung_luas` (versi tanpa fungsi → dengan fungsi). Jelaskan `void`. Tunjukkan prototype. Bagikan `02_Task_B.c` (kalkulator BMI & progres tabungan). |
+| 90–105 | **Rekursi** | Gambar call stack faktorial(4) di whiteboard. Demo versi loop vs rekursi berdampingan. Arahkan ke Optional Task Soal 2. |
 | 105–115 | **AI untuk Boilerplate** | Demo prompt buruk vs baik. Tunjukkan cara memvalidasi kode AI. |
 | 115–120 | **Penutup & Tugas** | Rekap 5 poin utama. Bagikan `02_Optional_Task.md`. Preview P3: Array & String. |
 
 ---
 
+## C2. Alasan Pemilihan Jenis & Konteks Task
+
+| Task | Jenis | Konteks dunia nyata | Alasan |
+|------|-------|---------------------|--------|
+| A1 | comment-guided | Potongan pajak gaji bertingkat | Mekanik `if/else if/else` paling jelas lewat tarif pajak berjenjang; siswa mengisi blok logika di `main`, kerangka sudah bisa dikompilasi. |
+| A2 | comment-guided | Tarif parkir per jenis kendaraan | `switch` cocok memetakan satu kode (jenis kendaraan) ke banyak nilai tetap; perhitungan total memperkuat aritmatika dari P1. |
+| B | todo-task | Kalkulator BMI + progres tabungan | Tiga fungsi melatih tiga konsep berbeda (return value, `void` + percabangan, `void` + loop) dalam konteks yang dikenal siswa sehari-hari. |
+
+> **Catatan konteks:** Optional Task Soal 2 (faktorial) & Soal 3 (FizzBuzz) sengaja **dipertahankan
+> dalam bentuk klasik** — keduanya bernilai pedagogis tinggi (faktorial = contoh kanonik rekursi;
+> FizzBuzz = soal interview legendaris). Soal 1 direframe jadi tabel proyeksi tabungan agar konteks
+> nested-loop terasa nyata.
+
+---
+
 ## D. Kunci Jawaban Task A
 
-### Bagian A — if / else if / else
+### Task A1 — if / else if / else (potongan pajak gaji)
 
 ```c
-if (nilai >= 85) {
-    printf("Hasil: Lulus dengan Pujian\n");
-} else if (nilai >= 60) {
-    printf("Hasil: Lulus\n");
+/* TUGAS 1: tentukan persen_pajak */
+if (gaji_kotor <= 4000000) {
+    persen_pajak = 0;
+} else if (gaji_kotor <= 10000000) {
+    persen_pajak = 5;
 } else {
-    printf("Hasil: Tidak Lulus\n");
+    persen_pajak = 15;
+}
+
+/* TUGAS 2: hitung potongan & gaji bersih */
+int potongan    = gaji_kotor * persen_pajak / 100;
+int gaji_bersih = gaji_kotor - potongan;
+
+/* TUGAS 3: cetak hasil */
+printf("Persen pajak  : %d%%\n", persen_pajak);
+printf("Potongan      : %d\n", potongan);
+printf("Gaji bersih   : %d\n", gaji_bersih);
+```
+
+> **Catatan:** tulis `gaji_kotor * persen_pajak / 100` (perkalian dulu, baru bagi) — bukan
+> `gaji_kotor / 100 * persen_pajak` — agar pembagian bilangan bulat tidak membuang ketelitian.
+> Untuk angka gaji yang sangat besar, `int` bisa overflow; di tahap ini cukup gunakan nilai wajar.
+
+### Task A2 — switch-case (tarif parkir)
+
+```c
+switch (jenis) {
+    case 1:
+        printf("Kendaraan : Motor\n");
+        tarif_per_jam = 2000;
+        break;
+    case 2:
+        printf("Kendaraan : Mobil\n");
+        tarif_per_jam = 4000;
+        break;
+    case 3:
+        printf("Kendaraan : Bus/Truk\n");
+        tarif_per_jam = 8000;
+        break;
+    default:
+        printf("Jenis kendaraan tidak valid. Pilih 1, 2, atau 3.\n");
 }
 ```
 
-### Bagian B — switch-case
-
-```c
-switch (angka_hari) {
-    case 1: printf("Hari ke-%d adalah: Senin\n",   angka_hari); break;
-    case 2: printf("Hari ke-%d adalah: Selasa\n",  angka_hari); break;
-    case 3: printf("Hari ke-%d adalah: Rabu\n",    angka_hari); break;
-    case 4: printf("Hari ke-%d adalah: Kamis\n",   angka_hari); break;
-    case 5: printf("Hari ke-%d adalah: Jumat\n",   angka_hari); break;
-    case 6: printf("Hari ke-%d adalah: Sabtu\n",   angka_hari); break;
-    case 7: printf("Hari ke-%d adalah: Minggu\n",  angka_hari); break;
-    default: printf("Angka tidak valid. Masukkan angka 1-7.\n");
-}
-```
-
-### Bagian C — Perulangan
-
-**C1 (for):**
-```c
-for (i = 1; i <= batas; i++) {
-    printf("%d  ", i);
-}
-```
-
-**C2 (while — hitung digit):**
-```c
-while (angka_digit > 0) {
-    angka_digit = angka_digit / 10;  /* C2a: buang digit terakhir */
-    jumlah_digit++;                  /* C2b: hitung digit */
-}
-```
-
-**C3 (do-while):**
-```c
-do {
-    printf("Tebak angka (1-10): ");
-    scanf("%d", &tebakan);
-    if (tebakan != rahasia) {
-        printf("Salah, coba lagi!\n");
-    }
-} while (tebakan != rahasia);
-```
+> Bagian perhitungan total (`tarif_per_jam * jam`) sudah disediakan di kerangka dan hanya berjalan
+> saat `tarif_per_jam > 0`, sehingga input tidak valid tidak ikut mencetak total.
 
 ---
 
 ## E. Kunci Jawaban Task B
 
-### Fungsi 1 — hitung_luas
+### Fungsi 1 — hitung_bmi
 
 ```c
-int hitung_luas(int panjang, int lebar) {
-    return panjang * lebar;
+float hitung_bmi(float berat, float tinggi) {
+    return berat / (tinggi * tinggi);
 }
 ```
 
-### Fungsi 2 — hitung_keliling
+### Fungsi 2 — cetak_kategori_bmi
 
 ```c
-int hitung_keliling(int panjang, int lebar) {
-    return 2 * (panjang + lebar);
-}
-```
-
-### Fungsi 3 — cetak_tabel_perkalian
-
-```c
-void cetak_tabel_perkalian(int angka) {
-    int i;
-    for (i = 1; i <= 10; i++) {
-        printf("%d x %2d = %2d\n", angka, i, angka * i);
+void cetak_kategori_bmi(float bmi) {
+    if (bmi < 18.5) {
+        printf("Kategori: Kurus\n");
+    } else if (bmi < 25.0) {
+        printf("Kategori: Normal\n");
+    } else if (bmi < 30.0) {
+        printf("Kategori: Gemuk\n");
+    } else {
+        printf("Kategori: Obesitas\n");
     }
 }
 ```
 
-### Fungsi 4 — hitung_pangkat (rekursif)
+### Fungsi 3 — cetak_progres_tabungan
 
 ```c
-int hitung_pangkat(int basis, int eksponen) {
-    if (eksponen == 0) {
-        return 1;
+void cetak_progres_tabungan(int setoran_bulanan, int jumlah_bulan) {
+    int saldo = 0;
+    int bulan;
+    for (bulan = 1; bulan <= jumlah_bulan; bulan++) {
+        saldo = saldo + setoran_bulanan;
+        printf("Bulan %d: %d\n", bulan, saldo);
     }
-    return basis * hitung_pangkat(basis, eksponen - 1);
-}
-```
-
-### Fungsi 5 — jumlah_1_sampai_n (rekursif)
-
-```c
-int jumlah_1_sampai_n(int n) {
-    if (n == 0) {
-        return 0;
-    }
-    return n + jumlah_1_sampai_n(n - 1);
 }
 ```
 
@@ -196,27 +199,26 @@ int jumlah_1_sampai_n(int n) {
 
 ```c
 int main() {
-    int panjang = 5, lebar = 3;
+    printf("=== Kalkulator BMI ===\n");
 
-    printf("=== Persegi Panjang (panjang=%d, lebar=%d) ===\n", panjang, lebar);
-    printf("Luas     : %d\n", hitung_luas(panjang, lebar));
-    printf("Keliling : %d\n", hitung_keliling(panjang, lebar));
+    printf("Orang A (berat=60.0 kg, tinggi=1.70 m)\n");
+    printf("BMI: %.1f\n", hitung_bmi(60.0, 1.70));
+    cetak_kategori_bmi(hitung_bmi(60.0, 1.70));
 
-    printf("\n=== Tabel Perkalian 4 ===\n");
-    cetak_tabel_perkalian(4);
+    printf("\nOrang B (berat=85.0 kg, tinggi=1.70 m)\n");
+    printf("BMI: %.1f\n", hitung_bmi(85.0, 1.70));
+    cetak_kategori_bmi(hitung_bmi(85.0, 1.70));
 
-    printf("\n=== Pangkat ===\n");
-    printf("2^0 = %d\n", hitung_pangkat(2, 0));
-    printf("2^3 = %d\n", hitung_pangkat(2, 3));
-    printf("3^4 = %d\n", hitung_pangkat(3, 4));
-
-    printf("\n=== Jumlah 1 sampai N ===\n");
-    printf("Jumlah 1 s.d. 5  = %d\n", jumlah_1_sampai_n(5));
-    printf("Jumlah 1 s.d. 10 = %d\n", jumlah_1_sampai_n(10));
+    printf("\n=== Progres Tabungan (setoran 500000/bulan) ===\n");
+    cetak_progres_tabungan(500000, 4);
 
     return 0;
 }
 ```
+
+> **Tentang nilai BMI:** `60 / (1.70 × 1.70) = 20.76` → dibulatkan `%.1f` jadi `20.8` (Normal);
+> `85 / (1.70 × 1.70) = 29.41` → `29.4` (Gemuk). Kedua parameter bertipe `float`, jadi tidak ada
+> jebakan pembagian bilangan bulat di sini.
 
 ---
 
@@ -224,37 +226,22 @@ int main() {
 
 Task B dirancang agar dikerjakan **fungsi per fungsi**. Minta siswa memanggil instruktur setiap kali satu fungsi selesai — jangan tunggu semua selesai baru dicek.
 
-### Fungsi 1 — hitung_luas
-Tanya siswa: *"Apa yang dikembalikan fungsi ini?"* Pastikan ada `return`, bukan hanya `printf`.
-Kesalahan umum: lupa `return`, atau menghitung keliling alih-alih luas.
+### Fungsi 1 — hitung_bmi
+Tanya siswa: *"Apa yang dikembalikan fungsi ini, dan tipenya apa?"* Pastikan ada `return`, bukan `printf`, dan tipe kembaliannya `float`.
+Kesalahan umum: lupa `return`; menulis `berat / tinggi * tinggi` tanpa kurung (salah urutan operasi — jadi `(berat/tinggi)*tinggi`); atau mendeklarasikan parameter sebagai `int` sehingga BMI kehilangan desimal.
 
-### Fungsi 2 — hitung_keliling
-Tanya siswa: *"Kenapa ada tanda kurung di `2 * (panjang + lebar)`?"*
-Kesalahan umum: menulis `2 * panjang + lebar` (salah urutan operasi).
+### Fungsi 2 — cetak_kategori_bmi
+Tanya siswa: *"Kenapa cukup tulis `else if (bmi < 25.0)` tanpa menyebut batas bawah 18.5 lagi?"*
+Kesalahan umum: rentang tumpang tindih atau ada celah; menukar urutan sehingga semua nilai jatuh ke kategori pertama. Tekankan: cek berurutan dari kecil ke besar, kondisi sebelumnya sudah "memotong" rentang di bawahnya.
+Verifikasi cepat: `cetak_kategori_bmi(20.8)` → Normal; `cetak_kategori_bmi(29.4)` → Gemuk.
 
-### Fungsi 3 — cetak_tabel_perkalian
+### Fungsi 3 — cetak_progres_tabungan
 Minta siswa compile dan jalankan, lalu bandingkan output dengan Expected Output di header file.
-Kesalahan umum: loop berhenti di `i <= 5` atau `i < 10`, format `%d` bukan `%2d` sehingga kolom tidak rapi.
-
-### Fungsi 4 — hitung_pangkat (rekursif)
-Tanya siswa: *"Apa yang terjadi kalau eksponen = 0?"* dan *"Apa yang dikembalikan untuk kasus rekursifnya?"*
-Kesalahan umum: menggunakan `+` alih-alih `*` pada kasus rekursif, atau base case tidak ditangani sama sekali.
-Jika siswa bingung, gambar call stack `hitung_pangkat(2, 3)` di kertas:
-```
-hitung_pangkat(2,3) = 2 * hitung_pangkat(2,2)
-                          = 2 * hitung_pangkat(2,1)
-                                = 2 * hitung_pangkat(2,0)
-                                          = 1
-```
-
-### Fungsi 5 — jumlah_1_sampai_n (rekursif)
-Tanya siswa: *"Base case-nya return berapa? Kenapa 0, bukan 1?"*
-Kesalahan umum: `return 1` di base case — ini yang paling sering salah. Kalau `n=0` mengembalikan 1, semua hasil akan kelebihan 1.
-Verifikasi cepat: `jumlah_1_sampai_n(5)` harus 15, bukan 16.
+Kesalahan umum: lupa menginisialisasi `saldo = 0`; menambahkan setoran *setelah* mencetak (sehingga Bulan 1 = 0); loop mulai dari 0 atau berhenti di `bulan < jumlah_bulan` sehingga jumlah baris salah.
 
 ### main — Pemanggilan Fungsi
 Setelah semua fungsi selesai, minta siswa tulis sendiri semua pemanggilan di `main`, compile, dan cocokkan output dengan Expected Output di header file secara baris per baris.
-Kesalahan umum: argumen kurang (memanggil `hitung_luas(panjang)` tanpa `lebar`), lupa `\n` di `printf`, atau format string tidak cocok.
+Kesalahan umum: argumen tertukar (`hitung_bmi(1.70, 60.0)`), lupa `\n` atau baris kosong pemisah, format `%d` untuk BMI alih-alih `%.1f`.
 
 ---
 

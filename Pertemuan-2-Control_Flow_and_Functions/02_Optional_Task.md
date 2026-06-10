@@ -14,21 +14,28 @@
 
 ---
 
-## Soal 1 — Level Mudah: Tabel Perkalian Lengkap
+## Soal 1 — Level Mudah: Tabel Proyeksi Tabungan
 
 **Problem Statement:**
 
-Buat program C yang:
-1. Menampilkan tabel perkalian dari **1 × 1** sampai **10 × 10** dalam bentuk grid rapi.
-2. Setiap angka di dalam tabel ditampilkan dengan lebar kolom yang sama (gunakan `%4d`).
+Bayangkan kamu ingin membandingkan berapa saldo tabungan yang terkumpul jika menabung dengan
+nominal berbeda setiap bulan (tanpa bunga). Buat program C yang:
 
-**Contoh output yang diharapkan (sebagian):**
+1. Menampilkan **tabel proyeksi tabungan** dalam bentuk grid rapi.
+2. **Baris** mewakili bulan ke-1 sampai bulan ke-6.
+3. **Kolom** mewakili pilihan setoran per bulan: 100.000, 200.000, 300.000, 400.000, 500.000.
+4. Isi setiap sel adalah `setoran_per_bulan × nomor_bulan` (total tabungan sampai bulan itu).
+5. Setiap angka ditampilkan dengan lebar kolom yang sama (gunakan `%9d`) agar rapi.
+
+**Contoh output yang diharapkan:**
 ```
-     1    2    3    4    5    6    7    8    9   10
-     2    4    6    8   10   12   14   16   18   20
-     3    6    9   12   15   18   21   24   27   30
-...
-    10   20   30   40   50   60   70   80   90  100
+Setoran/bln ->    100000   200000   300000   400000   500000
+Bulan 1     :     100000   200000   300000   400000   500000
+Bulan 2     :     200000   400000   600000   800000  1000000
+Bulan 3     :     300000   600000   900000  1200000  1500000
+Bulan 4     :     400000   800000  1200000  1600000  2000000
+Bulan 5     :     500000  1000000  1500000  2000000  2500000
+Bulan 6     :     600000  1200000  1800000  2400000  3000000
 ```
 
 **Panduan:**
@@ -36,15 +43,16 @@ Buat program C yang:
 <details>
 <summary>Klik untuk melihat panduan</summary>
 
-- Kamu butuh **dua loop yang bersarang** (*nested loop*): loop luar untuk baris, loop dalam untuk kolom.
-- Loop luar: `for (i = 1; i <= 10; i++)`
-- Loop dalam: `for (j = 1; j <= 10; j++)`
-- Setiap elemen tabel adalah `i * j`.
+- Ini pada dasarnya tabel perkalian, tapi dengan konteks nyata: setoran × bulan.
+- Kamu butuh **dua loop yang bersarang** (*nested loop*): loop luar untuk baris (bulan), loop dalam untuk kolom (setoran).
+- Loop luar: `for (bulan = 1; bulan <= 6; bulan++)`
+- Loop dalam: `for (setoran = 100000; setoran <= 500000; setoran += 100000)`
+- Isi setiap sel adalah `setoran * bulan`.
 - Pindah baris setelah loop dalam selesai dengan `printf("\n")`.
 
 **Pertanyaan pemandu:**
-- Mengapa `%4d` membuat kolom terlihat rapi?
-- Bisakah kamu memisahkan logika cetak satu baris ke dalam sebuah fungsi?
+- Mengapa `%9d` membuat kolom terlihat rapi, sementara `%d` tidak?
+- Bisakah kamu memisahkan logika "cetak satu baris bulan" ke dalam sebuah fungsi `void cetak_baris(int bulan)`?
 
 </details>
 
