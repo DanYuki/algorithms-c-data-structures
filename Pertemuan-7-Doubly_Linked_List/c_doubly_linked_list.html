@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doubly Linked List in C</title>
+<style>
+:root {
+  --bg:         #10111a;
+  --bg2:        #161724;
+  --surface:    #1e2035;
+  --surface2:   #262840;
+  --border:     #2e3050;
+  --border2:    #3a3d60;
+  --muted:      #5c6080;
+  --text:       #c8cce8;
+  --bright:     #eef0ff;
+
+  /* signature dual-arrow palette */
+  --next-color:  #e06c75;   /* forward arrow: warm red  */
+  --prev-color:  #61afef;   /* back arrow: cool blue    */
+  --data-color:  #e5c07b;   /* data value: amber        */
+  --head-color:  #c678dd;   /* head pointer: purple     */
+  --tail-color:  #98c379;   /* tail pointer: green      */
+  --node-hl:     #56b6c2;   /* highlight: cyan          */
+  --new-color:   #d19a66;   /* new node: orange         */
+  --del-color:   #be5046;   /* deleting: dark red       */
+
+  --mono: 'Cascadia Code', 'Consolas', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  --sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── blueprint dot grid background ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(circle, rgba(97,175,239,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── HEADER ─── */
+.hdr {
+  position: relative; z-index: 2;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 20px;
+  flex-shrink: 0;
+}
+.hdr-title {
+  font-family: var(--mono);
+  font-size: 0.95rem; font-weight: 600;
+  color: var(--bright);
+}
+.hdr-title .kw { color: var(--head-color); }
+.hdr-title .ty { color: var(--data-color); }
+.hdr-title .pt { color: var(--next-color); }
+.hdr-badge {
+  font-family: var(--mono); font-size: 0.65rem;
+  padding: 3px 9px; border-radius: 20px;
+  background: rgba(97,175,239,0.12);
+  color: var(--prev-color);
+  border: 1px solid rgba(97,175,239,0.25);
+}
+.hdr-sub { margin-left: auto; font-size: 0.75rem; color: var(--muted); font-family: var(--mono); }
+
+/* ─── TABS ─── */
+.tabs {
+  position: relative; z-index: 2;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex; padding: 0 20px; gap: 0;
+  flex-shrink: 0; overflow-x: auto;
+}
+.tab-btn {
+  font-family: var(--mono); font-size: 0.75rem;
+  padding: 10px 18px; border: none; background: none;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s; white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.on { color: var(--node-hl); border-bottom-color: var(--node-hl); }
+
+/* ─── BODY LAYOUT ─── */
+.body-wrap {
+  position: relative; z-index: 1;
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ─── CODE SIDEBAR ─── */
+.code-side {
+  width: 300px; min-width: 240px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  flex-shrink: 0;
+}
+.side-hdr {
+  padding: 9px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.mac-dots { display:flex;gap:5px; }
+.mac-dot  { width:8px;height:8px;border-radius:50%; }
+.md-r{background:#ff5f57;} .md-y{background:#febc2e;} .md-g{background:#28c840;}
+
+.code-scroll { flex:1; overflow-y:auto; padding: 10px 0; }
+.cl {
+  display:flex; gap:0; padding: 1px 0;
+  cursor:pointer; transition: background .1s; position:relative;
+}
+.cl:hover { background: rgba(86,182,194,0.05); }
+.cl.hl    { background: rgba(86,182,194,0.1); }
+.cl.hl::before {
+  content:''; position:absolute; left:0;top:0;bottom:0;
+  width:2px; background: var(--node-hl);
+}
+.ln { min-width:34px; padding:0 8px; color:var(--muted); font-family:var(--mono); font-size:0.68rem; text-align:right; user-select:none; padding-top:2px; }
+.cd { font-family:var(--mono); font-size:0.76rem; line-height:1.85; flex:1; padding-right:10px; word-break:break-word; }
+
+/* syntax colors */
+.kw{color:#c678dd;} .ty{color:var(--data-color);} .va{color:var(--prev-color);}
+.pt{color:var(--next-color);} .nu{color:var(--tail-color);} .op{color:var(--muted);}
+.cm{color:var(--muted);font-style:italic;} .fn{color:#61afef;} .st{color:var(--node-hl);}
+.ar{color:var(--next-color);}
+
+/* ─── CANVAS AREA ─── */
+.canvas-side {
+  flex:1; display:flex; flex-direction:column; overflow:hidden; min-height: 0;
+}
+
+/* VIZ STAGE */
+.viz-stage {
+  flex:1; overflow:auto; padding: 36px 28px 20px;
+  position:relative; min-height: 200px;
+}
+.viz-stage.compact {
+  flex: 0 0 220px;
+  min-height: 220px;
+  max-height: 220px;
+  padding: 24px 28px 12px;
+}
+.dll-canvas {
+  position:relative;
+  min-width: 500px;
+  min-height: 160px;
+}
+.dll-canvas svg { position:absolute; inset:0; pointer-events:none; overflow:visible; }
+
+/* ─── NODE ─── */
+.nwrap {
+  position:absolute;
+  display:flex; flex-direction:column; align-items:center;
+  transition: left .5s cubic-bezier(.4,0,.2,1), top .5s cubic-bezier(.4,0,.2,1);
+}
+.nwrap.spawning .nbox { animation: nodeSpawn .35s cubic-bezier(.2,0,.2,1) both; }
+.nwrap.dying .nbox   { animation: nodeDie .3s ease forwards; }
+
+@keyframes nodeSpawn {
+  from { opacity:0; transform: scale(.7) translateY(-15px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+@keyframes nodeDie {
+  to   { opacity:0; transform: scale(.7); }
+}
+
+.nbox {
+  display:flex;
+  border-radius: 8px;
+  border: 1.5px solid var(--border2);
+  background: var(--surface);
+  box-shadow: 0 2px 16px rgba(0,0,0,.45);
+  overflow:hidden;
+  transition: border-color .3s, box-shadow .3s;
+}
+.nbox.hl   { border-color: var(--node-hl);  box-shadow: 0 0 18px rgba(86,182,194,.35); }
+.nbox.new  { border-color: var(--new-color); box-shadow: 0 0 18px rgba(209,154,102,.35); }
+.nbox.del  { border-color: var(--del-color); box-shadow: 0 0 12px rgba(190,80,70,.3); opacity:.5; }
+.nbox.head-hl { border-color: var(--head-color); box-shadow: 0 0 14px rgba(198,120,221,.3); }
+.nbox.tail-hl { border-color: var(--tail-color); box-shadow: 0 0 14px rgba(152,195,121,.3); }
+
+/* three-cell node: [PREV | DATA | NEXT] */
+.ncell {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding: 9px 11px; gap: 3px;
+}
+.ncell + .ncell { border-left: 1px solid var(--border); }
+.ncell-lbl {
+  font-family:var(--mono); font-size:0.52rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.07em;
+}
+.ncell-val { font-family:var(--mono); font-size:0.9rem; font-weight:600; }
+.ncell-val.prev-val { color: var(--prev-color); font-size:0.64rem; }
+.ncell-val.data-val { color: var(--data-color); font-size:1.05rem; }
+.ncell-val.next-val { color: var(--next-color); font-size:0.64rem; }
+.ncell-val.null-val { color: var(--muted); font-size:0.7rem; font-weight:700; }
+
+/* pointer labels above node */
+.ptr-labels {
+  display:flex; gap:6px; margin-bottom:6px; min-height:22px; align-items:flex-end; justify-content:center;
+}
+.ptr-tag {
+  font-family:var(--mono); font-size:0.65rem; font-weight:600;
+  padding: 2px 8px; border-radius: 3px; white-space:nowrap;
+}
+.ptr-tag.head { background:rgba(198,120,221,.15); color:var(--head-color); border:1px solid rgba(198,120,221,.3); }
+.ptr-tag.tail { background:rgba(152,195,121,.12); color:var(--tail-color); border:1px solid rgba(152,195,121,.28); }
+.ptr-tag.curr { background:rgba(86,182,194,.12);  color:var(--node-hl);   border:1px solid rgba(86,182,194,.28); }
+
+/* address below node */
+.addr-lbl {
+  font-family:var(--mono); font-size:0.59rem; color:var(--muted);
+  margin-top:5px; white-space:nowrap;
+}
+
+/* NULL sentinel boxes */
+.null-sentinel {
+  position:absolute;
+  border:1.5px dashed var(--border2);
+  border-radius:6px; padding:7px 12px;
+  font-family:var(--mono); font-size:0.75rem; color:var(--muted); font-weight:700;
+  background:var(--bg2);
+  transition: left .5s, top .5s;
+}
+
+/* EMPTY STATE */
+.empty-msg {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:10px;
+  color:var(--muted); font-family:var(--mono); font-size:0.82rem;
+  pointer-events:none;
+}
+
+/* ─── EXPLAIN BAR ─── */
+.explain-bar {
+  border-top:1px solid var(--border);
+  background: var(--bg2);
+  padding: 11px 22px;
+  min-height:52px; display:flex; align-items:center; gap:12px;
+  flex-shrink:0;
+}
+.explain-icon { font-size:1rem; flex-shrink:0; }
+.explain-txt  { font-size:0.85rem; line-height:1.6; }
+.explain-txt code {
+  font-family:var(--mono); font-size:0.76rem;
+  background:var(--surface); padding:1px 6px; border-radius:3px; color:var(--node-hl);
+}
+
+/* ─── CONTROL BAR ─── */
+.ctrl-bar {
+  border-top:1px solid var(--border);
+  background: var(--surface);
+  padding: 10px 22px;
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  flex-shrink:0;
+}
+.btn {
+  font-family:var(--mono); font-size:0.74rem;
+  padding:6px 15px; border:1px solid var(--border2);
+  background:var(--surface2); color:var(--text);
+  border-radius:5px; cursor:pointer; transition:all .15s;
+}
+.btn:hover { border-color:var(--node-hl); color:var(--node-hl); }
+.btn:disabled { opacity:.3; cursor:not-allowed; }
+.btn.prime { background:var(--node-hl); color:var(--bg); border-color:var(--node-hl); font-weight:600; }
+.btn.prime:hover { background:#70cad4; }
+.btn.dng { border-color:var(--next-color); color:var(--next-color); }
+.btn.dng:hover { background:rgba(224,108,117,.1); }
+
+.ctrl-dots { display:flex; gap:5px; align-items:center; }
+.cdot { width:6px;height:6px;border-radius:50%; background:var(--border2); transition:all .25s; }
+.cdot.done { background:var(--node-hl); opacity:.6; }
+.cdot.cur  { background:var(--node-hl); transform:scale(1.5); box-shadow:0 0 6px var(--node-hl); }
+.step-lbl { margin-left:auto; font-family:var(--mono); font-size:0.7rem; color:var(--muted); }
+
+/* ─── TAB CONTENT ─── */
+.tab-content { flex:1; overflow-y:auto; display:none; min-height:0; }
+
+/* ─── PLAYGROUND ─── */
+.pg-body { padding:18px 22px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; }
+.sec-lbl { font-family:var(--mono); font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:5px; }
+.pg-row  { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+.pg-in {
+  font-family:var(--mono); font-size:0.8rem;
+  padding:6px 11px; background:var(--surface); border:1px solid var(--border2);
+  color:var(--bright); border-radius:5px; width:88px; outline:none;
+  transition:border-color .15s;
+}
+.pg-in:focus { border-color:var(--node-hl); }
+.pg-log {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:10px 13px;
+  font-family:var(--mono); font-size:0.73rem; line-height:1.75;
+  min-height:80px; max-height:130px; overflow-y:auto;
+}
+.ll { display:flex; gap:8px; }
+.lt { color:var(--muted); } .lok { color:var(--tail-color); }
+.lerr { color:var(--next-color); } .linf { color:var(--prev-color); }
+
+/* ─── MEMORY TABLE ─── */
+.mem-body { padding:18px 22px; overflow-x:auto; overflow-y:auto; flex:1; }
+.mtable {
+  width:100%; border-collapse:collapse;
+  font-family:var(--mono); font-size:0.76rem;
+}
+.mtable th {
+  text-align:left; padding:8px 13px;
+  background:var(--surface2); color:var(--muted);
+  font-size:0.63rem; text-transform:uppercase; letter-spacing:.07em;
+  border-bottom:1px solid var(--border);
+}
+.mtable td { padding:9px 13px; border-bottom:1px solid rgba(46,48,80,.6); }
+.mtable tr:hover td { background:rgba(255,255,255,.02); }
+.mtable .c-addr { color:var(--head-color); }
+.mtable .c-name { color:var(--prev-color); }
+.mtable .c-data { color:var(--data-color); font-weight:600; }
+.mtable .c-prev { color:var(--prev-color); }
+.mtable .c-next { color:var(--next-color); }
+.mtable .c-note { color:var(--muted); font-size:0.67rem; }
+
+/* ─── CHEATSHEET ─── */
+.cheat-body { padding:18px 22px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; flex:1; }
+.cblock {
+  background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;
+}
+.cblock-hdr {
+  padding:8px 15px; background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-family:var(--mono); font-size:0.68rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.07em;
+}
+.cblock-code {
+  padding:13px 15px; font-family:var(--mono); font-size:0.77rem; line-height:1.82; overflow-x:auto;
+}
+/* complexity table reuses mtable */
+.cpx-title { font-family:var(--mono);font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px; }
+
+/* ─── QUIZ ─── */
+.quiz-body { padding:18px 22px; display:flex; flex-direction:column; gap:13px; overflow-y:auto; flex:1; }
+.qcard { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:15px 17px; }
+.qcard h4 { font-family:var(--mono); font-size:0.8rem; color:var(--bright); margin-bottom:11px; line-height:1.55; }
+.qopts { display:flex; flex-direction:column; gap:6px; }
+.qopt {
+  font-family:var(--mono); font-size:0.77rem; padding:8px 11px;
+  background:var(--bg2); border:1px solid var(--border2); color:var(--text);
+  border-radius:5px; cursor:pointer; text-align:left; transition:all .15s;
+}
+.qopt:hover { border-color:var(--node-hl); color:var(--node-hl); }
+.qopt.ok  { border-color:var(--tail-color); background:rgba(152,195,121,.09); color:var(--tail-color); }
+.qopt.bad { border-color:var(--next-color); background:rgba(224,108,117,.09); color:var(--next-color); }
+.qfb { margin-top:8px; padding:7px 10px; border-radius:5px; font-family:var(--mono); font-size:0.73rem; display:none; line-height:1.5; }
+.qfb.show { display:block; }
+.qfb.pass { background:rgba(152,195,121,.1); color:var(--tail-color); border:1px solid rgba(152,195,121,.25); }
+.qfb.fail { background:rgba(224,108,117,.1); color:var(--next-color); border:1px solid rgba(224,108,117,.25); }
+
+/* slide animation for explain */
+@keyframes slideIn { from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)} }
+.slide-in { animation: slideIn .3s ease both; }
+@keyframes arrowAnim { from{stroke-dashoffset:300}to{stroke-dashoffset:0} }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-title">
+    <span class="kw">typedef struct</span> <span class="ty">DNode</span> { <span class="ty">int</span> data; <span class="ty">DNode</span> <span class="pt">*prev, *next</span>; }
+  </div>
+  <div class="hdr-badge">doubly linked list</div>
+  <div class="hdr-sub">Interactive C Visualizer</div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs" id="tabs">
+  <button class="tab-btn on"  onclick="switchTab('learn',this)">① Learn</button>
+  <button class="tab-btn"     onclick="switchTab('play',this)">② Playground</button>
+  <button class="tab-btn"     onclick="switchTab('mem',this)">③ Memory</button>
+  <button class="tab-btn"     onclick="switchTab('cheat',this)">④ Cheatsheet</button>
+  <button class="tab-btn"     onclick="switchTab('quiz',this)">⑤ Quiz</button>
+</nav>
+
+<!-- BODY -->
+<div class="body-wrap">
+
+  <!-- CODE SIDEBAR -->
+  <aside class="code-side" id="code-side">
+    <div class="side-hdr">
+      <div class="mac-dots"><div class="mac-dot md-r"></div><div class="mac-dot md-y"></div><div class="mac-dot md-g"></div></div>
+      doubly_list.c
+    </div>
+    <div class="code-scroll" id="code-scroll"></div>
+  </aside>
+
+  <!-- CANVAS -->
+  <div class="canvas-side">
+    <!-- VISUAL STAGE (shared) -->
+    <div class="viz-stage" id="viz-stage">
+      <div class="dll-canvas" id="dll-canvas">
+        <svg id="dll-svg"></svg>
+        <div class="empty-msg" id="empty-msg">
+          <span style="font-size:1.6rem">⇄</span>
+          <span>head = tail = NULL — list is empty</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPLAIN BAR -->
+    <div class="explain-bar" id="explain-bar">
+      <span class="explain-icon">💡</span>
+      <span class="explain-txt" id="explain-txt">A <strong>doubly linked list</strong> gives each node two pointers: <code>prev</code> (backward) and <code>next</code> (forward). This lets you traverse in both directions. Press <strong>Next ▶</strong> to begin.</span>
+    </div>
+
+    <!-- TAB CONTENT (playground / memory / cheat / quiz) -->
+    <div class="tab-content" id="tab-content"></div>
+
+    <!-- CONTROL BAR -->
+    <div class="ctrl-bar" id="ctrl-bar">
+      <button class="btn" id="btn-prev" onclick="prevStep()">◀ Prev</button>
+      <div class="ctrl-dots" id="ctrl-dots"></div>
+      <button class="btn prime" id="btn-next" onclick="nextStep()">Next ▶</button>
+      <button class="btn" onclick="goReset()">↺ Reset</button>
+      <span class="step-lbl" id="step-lbl">Step 0</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const A = i => '0x' + (0x4000 + i * 0x18).toString(16).toUpperCase();
+
+// ═══════════════════════════════════════════
+// CODE LINES
+// ═══════════════════════════════════════════
+const CODE = [
+/* 0 */  `<span class="kw">typedef</span> <span class="kw">struct</span> <span class="ty">DNode</span> {`,
+/* 1 */  `&nbsp;&nbsp;<span class="ty">int</span>           <span class="va">data</span><span class="op">;</span>`,
+/* 2 */  `&nbsp;&nbsp;<span class="kw">struct</span> <span class="ty">DNode</span>  <span class="pt">*prev</span><span class="op">;</span>`,
+/* 3 */  `&nbsp;&nbsp;<span class="kw">struct</span> <span class="ty">DNode</span>  <span class="pt">*next</span><span class="op">;</span>`,
+/* 4 */  `} <span class="ty">DNode</span><span class="op">;</span>`,
+/* 5 */  ``,
+/* 6 */  `<span class="ty">DNode</span> <span class="pt">*head</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 7 */  `<span class="ty">DNode</span> <span class="pt">*tail</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 8 */  ``,
+/* 9 */  `<span class="cm">// Append to tail</span>`,
+/* 10 */ `<span class="ty">DNode</span> <span class="pt">*n1</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">DNode</span><span class="op">));</span>`,
+/* 11 */ `<span class="va">n1</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">10</span><span class="op">;</span>`,
+/* 12 */ `<span class="va">n1</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 13 */ `<span class="va">n1</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 14 */ `<span class="pt">head</span> <span class="op">=</span> <span class="pt">tail</span> <span class="op">=</span> <span class="va">n1</span><span class="op">;</span>`,
+/* 15 */ ``,
+/* 16 */ `<span class="cm">// Append second node</span>`,
+/* 17 */ `<span class="ty">DNode</span> <span class="pt">*n2</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">DNode</span><span class="op">));</span>`,
+/* 18 */ `<span class="va">n2</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">20</span><span class="op">;</span>`,
+/* 19 */ `<span class="va">n2</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="pt">tail</span><span class="op">;</span>   <span class="cm">// ← back link!</span>`,
+/* 20 */ `<span class="va">n2</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 21 */ `<span class="pt">tail</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">n2</span><span class="op">;</span>   <span class="cm">// ← forward link!</span>`,
+/* 22 */ `<span class="pt">tail</span> <span class="op">=</span> <span class="va">n2</span><span class="op">;</span>`,
+/* 23 */ ``,
+/* 24 */ `<span class="cm">// Prepend to head</span>`,
+/* 25 */ `<span class="ty">DNode</span> <span class="pt">*n0</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">DNode</span><span class="op">));</span>`,
+/* 26 */ `<span class="va">n0</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="nu">5</span><span class="op">;</span>`,
+/* 27 */ `<span class="va">n0</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>`,
+/* 28 */ `<span class="va">n0</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="pt">head</span><span class="op">;</span>`,
+/* 29 */ `<span class="pt">head</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="va">n0</span><span class="op">;</span>`,
+/* 30 */ `<span class="pt">head</span> <span class="op">=</span> <span class="va">n0</span><span class="op">;</span>`,
+/* 31 */ ``,
+/* 32 */ `<span class="cm">// Delete middle node (n1)</span>`,
+/* 33 */ `<span class="va">n1</span><span class="ar">-></span><span class="pt">prev</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">n1</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>`,
+/* 34 */ `<span class="va">n1</span><span class="ar">-></span><span class="pt">next</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="va">n1</span><span class="ar">-></span><span class="pt">prev</span><span class="op">;</span>`,
+/* 35 */ `<span class="fn">free</span><span class="op">(</span><span class="va">n1</span><span class="op">);</span>`,
+];
+
+// ═══════════════════════════════════════════
+// LEARN STEPS
+// ═══════════════════════════════════════════
+// node shape: { id, data, addr, isNew?, isDel?, hlClass? }
+// labels: { head: id|null, tail: id|null }
+// links: [[fromId, toId, 'next'|'prev'], ...]
+
+const STEPS = [
+  {
+    code:[],
+    exp:`A <strong>doubly linked list</strong> stores two pointers per node: <code>prev</code> points <em>backward</em> (blue ←) and <code>next</code> points <em>forward</em> (red →). This costs one extra pointer per node but enables O(1) backward traversal and easier deletion.`,
+    nodes:[], labels:{head:null,tail:null}, links:[]
+  },
+  {
+    code:[0,1,2,3,4],
+    exp:`<code>struct DNode</code> — three fields: <code>data</code> (the value), <code>*prev</code> (pointer to previous node), <code>*next</code> (pointer to next node). This is what makes it <em>doubly</em> linked.`,
+    nodes:[], labels:{head:null,tail:null}, links:[],
+    showStruct: true
+  },
+  {
+    code:[6,7],
+    exp:`<code>head = tail = NULL</code> — both sentinel pointers start as NULL. Unlike a singly linked list, we track <code>tail</code> too, giving us O(1) append <em>and</em> O(1) backward traversal.`,
+    nodes:[], labels:{head:null,tail:null}, links:[]
+  },
+  {
+    code:[9,10,11,12,13],
+    exp:`Allocate <code>n1</code> with <code>malloc</code>. Set <code>data = 10</code>, <code>prev = NULL</code>, <code>next = NULL</code>. The node floats in heap memory — not yet in the list.`,
+    nodes:[{id:0,data:10,addr:A(0),isNew:true}],
+    labels:{head:null,tail:null}, links:[]
+  },
+  {
+    code:[14],
+    exp:`<code>head = tail = n1</code> — first node is both head and tail. <code>prev</code> and <code>next</code> are NULL. The list has one element: <strong>NULL ← 10 → NULL</strong>.`,
+    nodes:[{id:0,data:10,addr:A(0),hlClass:'head-hl'}],
+    labels:{head:0,tail:0}, links:[]
+  },
+  {
+    code:[16,17,18,19,20],
+    exp:`Allocate <code>n2</code> (data = 20). Set <code>n2->prev = tail</code> — the critical back-link pointing to n1. <code>n2->next = NULL</code> since it will be the new tail.`,
+    nodes:[
+      {id:0,data:10,addr:A(0)},
+      {id:1,data:20,addr:A(1),isNew:true}
+    ],
+    labels:{head:0,tail:0},
+    links:[[1,0,'prev']]
+  },
+  {
+    code:[21,22],
+    exp:`<code>tail->next = n2</code> — forward link from n1 to n2. Then <code>tail = n2</code>. Now we have a proper doubly-linked chain: <strong>NULL ← 10 ⇄ 20 → NULL</strong>. Both <code>prev</code> and <code>next</code> arrows are live!`,
+    nodes:[
+      {id:0,data:10,addr:A(0)},
+      {id:1,data:20,addr:A(1),hlClass:'tail-hl'}
+    ],
+    labels:{head:0,tail:1},
+    links:[[0,1,'next'],[1,0,'prev']]
+  },
+  {
+    code:[24,25,26,27,28],
+    exp:`Prepend n0 (data = 5). <code>n0->prev = NULL</code>, <code>n0->next = head</code> — point the new node forward at the old head.`,
+    nodes:[
+      {id:2,data:5,addr:A(2),isNew:true},
+      {id:0,data:10,addr:A(0)},
+      {id:1,data:20,addr:A(1)}
+    ],
+    labels:{head:0,tail:1},
+    links:[[2,0,'next'],[0,1,'next'],[1,0,'prev']]
+  },
+  {
+    code:[29,30],
+    exp:`<code>head->prev = n0</code> — set the old head's back-pointer to the new node. Then <code>head = n0</code>. Full bidirectional chain: <strong>NULL ← 5 ⇄ 10 ⇄ 20 → NULL</strong>.`,
+    nodes:[
+      {id:2,data:5,addr:A(2),hlClass:'head-hl'},
+      {id:0,data:10,addr:A(0)},
+      {id:1,data:20,addr:A(1),hlClass:'tail-hl'}
+    ],
+    labels:{head:2,tail:1},
+    links:[[2,0,'next'],[0,2,'prev'],[0,1,'next'],[1,0,'prev']]
+  },
+  {
+    code:[32,33],
+    exp:`<strong>Delete middle node n1 (value 10).</strong> Step 1: <code>n1->prev->next = n1->next</code> — make n0's forward pointer skip over n1, pointing directly to n2.`,
+    nodes:[
+      {id:2,data:5,addr:A(2)},
+      {id:0,data:10,addr:A(0),isDel:true},
+      {id:1,data:20,addr:A(1)}
+    ],
+    labels:{head:2,tail:1},
+    links:[[2,1,'next'],[0,2,'prev'],[0,1,'next'],[1,0,'prev']]
+  },
+  {
+    code:[34],
+    exp:`Step 2: <code>n1->next->prev = n1->prev</code> — make n2's backward pointer skip over n1, pointing back to n0. The node is now bypassed from both directions.`,
+    nodes:[
+      {id:2,data:5,addr:A(2)},
+      {id:0,data:10,addr:A(0),isDel:true},
+      {id:1,data:20,addr:A(1)}
+    ],
+    labels:{head:2,tail:1},
+    links:[[2,1,'next'],[1,2,'prev']]
+  },
+  {
+    code:[35],
+    exp:`<code>free(n1)</code> — release the memory of the deleted node. Chain is now: <strong>NULL ← 5 ⇄ 20 → NULL</strong>. Deleting a <em>known</em> node in a doubly linked list is O(1) — no predecessor search needed!`,
+    nodes:[
+      {id:2,data:5,addr:A(2),hlClass:'head-hl'},
+      {id:1,data:20,addr:A(1),hlClass:'tail-hl'}
+    ],
+    labels:{head:2,tail:1},
+    links:[[2,1,'next'],[1,2,'prev']]
+  },
+  {
+    code:[],
+    exp:`✅ <strong>Done!</strong> You've covered: <code>struct DNode</code>, <code>head/tail</code> tracking, append, prepend, and middle-node deletion. The key insight: every structural change requires updating <strong>both</strong> prev and next pointers. Switch to <strong>Playground</strong> to build your own.`,
+    nodes:[
+      {id:2,data:5,addr:A(2),hlClass:'head-hl'},
+      {id:1,data:20,addr:A(1),hlClass:'tail-hl'}
+    ],
+    labels:{head:2,tail:1},
+    links:[[2,1,'next'],[1,2,'prev']]
+  }
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let curStep = 0;
+let curTab  = 'learn';
+
+// playground
+let pgNodes = [];
+let pgNextId = 0;
+let pgAddrIdx = 0;
+const pgAddr = () => '0x' + (0x5000 + pgAddrIdx++ * 0x18).toString(16).toUpperCase();
+let pgLog = [];
+
+// quiz
+let qState = [];
+
+// ═══════════════════════════════════════════
+// RENDER CODE
+// ═══════════════════════════════════════════
+function renderCode(hlLines) {
+  const scroll = document.getElementById('code-scroll');
+  scroll.innerHTML = CODE.map((line, i) => `
+    <div class="cl${(Array.isArray(hlLines) && hlLines.includes(i)) ? ' hl' : ''}" id="cl${i}">
+      <span class="ln">${i+1}</span>
+      <span class="cd">${line || '&nbsp;'}</span>
+    </div>`).join('');
+  if (Array.isArray(hlLines) && hlLines.length) {
+    const el = document.getElementById('cl' + hlLines[0]);
+    if (el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+}
+
+// ═══════════════════════════════════════════
+// RENDER DLL DIAGRAM
+// ═══════════════════════════════════════════
+const NW = 162, NH = 62, HGAP = 70, START_X = 50, NODE_Y = 88;
+
+function renderDLL(nodes, labels, links, opts={}) {
+  const canvas = document.getElementById('dll-canvas');
+  const svg    = document.getElementById('dll-svg');
+  const emptyMsg = document.getElementById('empty-msg');
+
+  // clear old nodes
+  Array.from(canvas.children).forEach(c => {
+    if (c.id !== 'dll-svg' && c.id !== 'empty-msg') c.remove();
+  });
+  svg.innerHTML = '';
+
+  if (!nodes || nodes.length === 0) {
+    emptyMsg.style.display = '';
+    canvas.style.minWidth = '400px';
+    canvas.style.minHeight = '160px';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  const totalW = nodes.length * (NW + HGAP) + START_X + 80;
+  canvas.style.minWidth = totalW + 'px';
+  canvas.style.minHeight = '190px';
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', 190);
+
+  const pos = {};
+
+  nodes.forEach((node, i) => {
+    const x = START_X + i * (NW + HGAP);
+    const y = NODE_Y;
+    pos[node.id] = {x, y};
+
+    const wrap = document.createElement('div');
+    wrap.className = 'nwrap' + (node.isNew ? ' spawning' : '');
+    wrap.id = 'nwrap' + node.id;
+    wrap.style.left = x + 'px';
+    wrap.style.top  = y + 'px';
+
+    const isHead = labels.head === node.id;
+    const isTail = labels.tail === node.id;
+    const hlClass = node.hlClass || (node.isNew ? 'new' : node.isDel ? 'del' : '');
+
+    // prev display: addr of prev node in current list
+    const prevNode = i > 0 ? nodes[i-1] : null;
+    const nextNode = i < nodes.length-1 ? nodes[i+1] : null;
+    const prevDisplay = node.isDel ? '...' : (prevNode ? prevNode.addr : 'NULL');
+    const nextDisplay = node.isDel ? '...' : (nextNode ? nextNode.addr : 'NULL');
+
+    const ptrLabelsHtml = `
+      <div class="ptr-labels">
+        ${isHead ? `<div class="ptr-tag head">head →</div>` : ''}
+        ${isTail && !isHead ? `<div class="ptr-tag tail">← tail</div>` : ''}
+        ${isHead && isTail  ? `<div class="ptr-tag tail">← tail</div>` : ''}
+      </div>`;
+
+    wrap.innerHTML = `
+      ${ptrLabelsHtml}
+      <div class="nbox ${hlClass}" id="nbox${node.id}">
+        <div class="ncell">
+          <span class="ncell-lbl">prev</span>
+          <span class="ncell-val ${prevDisplay==='NULL'?'null-val':'prev-val'}">${prevDisplay==='NULL'?'NULL':prevDisplay}</span>
+        </div>
+        <div class="ncell">
+          <span class="ncell-lbl">data</span>
+          <span class="ncell-val data-val">${node.data}</span>
+        </div>
+        <div class="ncell">
+          <span class="ncell-lbl">next</span>
+          <span class="ncell-val ${nextDisplay==='NULL'?'null-val':'next-val'}">${nextDisplay==='NULL'?'NULL':nextDisplay}</span>
+        </div>
+      </div>
+      <div class="addr-lbl">${node.addr}</div>`;
+
+    canvas.appendChild(wrap);
+  });
+
+  // draw arrows after layout
+  requestAnimationFrame(() => drawLinks(svg, nodes, pos, links));
+}
+
+function drawLinks(svg, nodes, pos, links) {
+  // define markers
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `
+    <marker id="mh-next" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#e06c75"/>
+    </marker>
+    <marker id="mh-prev" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#61afef"/>
+    </marker>
+    <marker id="mh-null" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#5c6080"/>
+    </marker>`;
+  svg.appendChild(defs);
+
+  // draw each explicit link
+  links.forEach(([fromId, toId, kind]) => {
+    const fp = pos[fromId], tp = pos[toId];
+    if (!fp || !tp) return;
+    const isNext = kind === 'next';
+    const color  = isNext ? '#e06c75' : '#61afef';
+    const marker = isNext ? 'url(#mh-next)' : 'url(#mh-prev)';
+
+    // next: lower arc, prev: upper arc
+    const x1 = isNext ? fp.x + NW     : fp.x;
+    const y1 = isNext ? fp.y + NH/2 + 8  : fp.y + NH/2 - 8;
+    const x2 = isNext ? tp.x           : tp.x + NW;
+    const y2 = isNext ? tp.y + NH/2 + 8  : tp.y + NH/2 - 8;
+
+    const dy   = isNext ? 22 : -22;
+    const mx   = (x1 + x2) / 2;
+    const my   = (y1 + y2) / 2 + dy;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M${x1},${y1} Q${mx},${my} ${x2-3},${y2}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width','1.7');
+    path.setAttribute('marker-end', marker);
+    path.setAttribute('stroke-dasharray','200');
+    path.setAttribute('stroke-dashoffset','200');
+    path.style.animation = 'arrowAnim .45s ease forwards .1s';
+    svg.appendChild(path);
+  });
+
+  // draw NULL arrows at both ends
+  nodes.forEach((node, i) => {
+    const p = pos[node.id];
+    if (node.isDel) return;
+
+    // NULL → (left side of head)
+    if (i === 0) {
+      const x2 = p.x, y = p.y + NH/2 - 8;
+      const line = mkLine(x2-45, y, x2-4, y, '#5c6080', 'url(#mh-null)');
+      svg.appendChild(line);
+      mkNullText(svg, x2-58, y+4, 'NULL');
+    }
+    // → NULL (right side of tail)
+    if (i === nodes.length-1) {
+      const x1 = p.x + NW, y = p.y + NH/2 + 8;
+      const line = mkLine(x1+3, y, x1+44, y, '#5c6080', 'url(#mh-null)');
+      svg.appendChild(line);
+      mkNullText(svg, x1+47, y+4, 'NULL');
+    }
+  });
+}
+
+function mkLine(x1,y1,x2,y2,color,marker) {
+  const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+  l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+  l.setAttribute('stroke',color); l.setAttribute('stroke-width','1.7');
+  l.setAttribute('stroke-dasharray','4,3');
+  if (marker) l.setAttribute('marker-end',marker);
+  return l;
+}
+
+function mkNullText(svg,x,y,txt) {
+  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x); t.setAttribute('y',y);
+  t.setAttribute('fill','#5c6080'); t.setAttribute('font-family','Fira Code,monospace');
+  t.setAttribute('font-size','10'); t.setAttribute('font-weight','700');
+  t.textContent = txt;
+  svg.appendChild(t);
+}
+
+// ═══════════════════════════════════════════
+// STEP ENGINE
+// ═══════════════════════════════════════════
+function applyStep(i) {
+  const s = STEPS[i];
+  renderCode(s.code);
+  renderDLL(s.nodes, s.labels, s.links);
+
+  const et = document.getElementById('explain-txt');
+  et.innerHTML = s.exp;
+  et.classList.remove('slide-in'); void et.offsetWidth; et.classList.add('slide-in');
+
+  document.getElementById('btn-prev').disabled = i === 0;
+  document.getElementById('btn-next').disabled = i === STEPS.length-1;
+  document.getElementById('step-lbl').textContent = `Step ${i} / ${STEPS.length-1}`;
+
+  const dotsEl = document.getElementById('ctrl-dots');
+  dotsEl.innerHTML = '';
+  STEPS.forEach((_,j) => {
+    const d = document.createElement('div');
+    d.className = 'cdot' + (j<i?' done':j===i?' cur':'');
+    dotsEl.appendChild(d);
+  });
+}
+
+function nextStep() { if(curStep<STEPS.length-1){curStep++;applyStep(curStep);} }
+function prevStep() { if(curStep>0){curStep--;applyStep(curStep);} }
+function goReset()  { curStep=0; applyStep(0); }
+
+// ═══════════════════════════════════════════
+// TAB SWITCH
+// ═══════════════════════════════════════════
+function switchTab(tab, btn) {
+  curTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+
+  const vizEl   = document.getElementById('viz-stage');
+  const expEl   = document.getElementById('explain-bar');
+  const ctrlEl  = document.getElementById('ctrl-bar');
+  const codeEl  = document.getElementById('code-side');
+  const tcEl    = document.getElementById('tab-content');
+
+  const isLearn  = tab === 'learn';
+  const showViz  = isLearn || tab === 'play' || tab === 'mem';
+
+  // viz visibility & sizing
+  vizEl.style.display  = showViz ? '' : 'none';
+  vizEl.classList.toggle('compact', showViz && !isLearn);
+
+  // other chrome
+  expEl.style.display  = isLearn ? '' : 'none';
+  ctrlEl.style.display = isLearn ? '' : 'none';
+  codeEl.style.display = isLearn ? '' : 'none';
+
+  // tab content panel
+  tcEl.style.display = isLearn ? 'none' : 'flex';
+  tcEl.style.flexDirection = 'column';
+
+  if (isLearn)        { applyStep(curStep); }
+  else if (tab==='play')  { buildPlayground(); renderPgDLL(); }
+  else if (tab==='mem')   { buildMemTab(); renderPgDLL(); }
+  else if (tab==='cheat') { buildCheat(); }
+  else if (tab==='quiz')  { buildQuiz(); }
+}
+
+// ═══════════════════════════════════════════
+// PLAYGROUND
+// ═══════════════════════════════════════════
+function pgLinks() {
+  const links = [];
+  pgNodes.forEach((n,i)=>{
+    if(i<pgNodes.length-1){
+      links.push([n.id, pgNodes[i+1].id, 'next']);
+      links.push([pgNodes[i+1].id, n.id, 'prev']);
+    }
+  });
+  return links;
+}
+
+function renderPgDLL() {
+  const nodes = pgNodes.map(n=>({id:n.id,data:n.data,addr:n.addr}));
+  const headId = pgNodes.length>0 ? pgNodes[0].id : null;
+  const tailId = pgNodes.length>0 ? pgNodes[pgNodes.length-1].id : null;
+  renderDLL(nodes, {head:headId, tail:tailId}, pgLinks());
+}
+
+function pgAppend(val) {
+  if(isNaN(val)) return pgAddLog('Invalid value','lerr');
+  const node = {id:pgNextId++, data:val, addr:pgAddr()};
+  pgNodes.push(node);
+  pgAddLog(`append(${val}) → ${node.addr}`, 'lok');
+  renderPgDLL();
+  if(curTab==='mem') buildMemTab();
+}
+function pgPrepend(val) {
+  if(isNaN(val)) return pgAddLog('Invalid value','lerr');
+  const node = {id:pgNextId++, data:val, addr:pgAddr()};
+  pgNodes.unshift(node);
+  pgAddLog(`prepend(${val}) → ${node.addr}, new head`, 'lok');
+  renderPgDLL();
+  if(curTab==='mem') buildMemTab();
+}
+function pgDelHead() {
+  if(!pgNodes.length) return pgAddLog('Empty list','lerr');
+  const old=pgNodes.shift();
+  pgAddLog(`free(head) — removed node(${old.data}) at ${old.addr}`, 'lok');
+  renderPgDLL(); if(curTab==='mem') buildMemTab();
+}
+function pgDelTail() {
+  if(!pgNodes.length) return pgAddLog('Empty list','lerr');
+  const old=pgNodes.pop();
+  pgAddLog(`free(tail) — removed node(${old.data}) at ${old.addr}`, 'lok');
+  renderPgDLL(); if(curTab==='mem') buildMemTab();
+}
+function pgDelAt(idx) {
+  if(idx<0||idx>=pgNodes.length) return pgAddLog(`Index ${idx} out of range`,'lerr');
+  const old=pgNodes.splice(idx,1)[0];
+  pgAddLog(`delete index ${idx} — node(${old.data}) bypassed via prev/next ptrs`, 'lok');
+  renderPgDLL(); if(curTab==='mem') buildMemTab();
+}
+function pgSearch(val) {
+  const idx=pgNodes.findIndex(n=>n.data===val);
+  if(idx===-1) { pgAddLog(`search(${val}) — not found (${pgNodes.length} nodes traversed)`,'linf'); return; }
+  pgAddLog(`search(${val}) — found at index ${idx} addr ${pgNodes[idx].addr}`,'lok');
+  // highlight found node temporarily
+  const nodes=pgNodes.map((n,i)=>({id:n.id,data:n.data,addr:n.addr,hlClass:i===idx?'hl':''}));
+  const headId=pgNodes.length>0?pgNodes[0].id:null;
+  const tailId=pgNodes.length>0?pgNodes[pgNodes.length-1].id:null;
+  renderDLL(nodes,{head:headId,tail:tailId},pgLinks());
+}
+function pgTraverseBack() {
+  if(!pgNodes.length) return pgAddLog('Empty list','lerr');
+  const seq=[...pgNodes].reverse().map(n=>n.data).join(' ← ');
+  pgAddLog(`reverse traversal: ${seq}`,'linf');
+}
+function pgReverse() {
+  if(pgNodes.length<2) return pgAddLog('Need ≥2 nodes','lerr');
+  pgNodes.reverse();
+  pgAddLog(`reversed — new head node(${pgNodes[0].data})`,'lok');
+  renderPgDLL(); if(curTab==='mem') buildMemTab();
+}
+function pgClear() {
+  pgNodes=[]; pgAddrIdx=0;
+  pgAddLog('free all — list cleared','lok');
+  renderPgDLL(); if(curTab==='mem') buildMemTab();
+}
+function pgAddLog(msg,cls) {
+  const ts=new Date().toTimeString().slice(0,8);
+  pgLog.unshift({ts,msg,cls});
+  if(pgLog.length>40) pgLog.pop();
+  const el=document.getElementById('pg-log');
+  if(el) el.innerHTML=pgLog.map(l=>`<div class="ll"><span class="lt">${l.ts}</span><span class="${l.cls}">${l.msg}</span></div>`).join('');
+}
+
+function buildPlayground() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="pg-body">
+    <div>
+      <div class="sec-lbl">Insert</div>
+      <div class="pg-row">
+        <input class="pg-in" id="pg-val" type="number" placeholder="value">
+        <button class="btn prime" onclick="pgAppend(parseInt(document.getElementById('pg-val').value))">Append Tail</button>
+        <button class="btn" onclick="pgPrepend(parseInt(document.getElementById('pg-val').value))">Prepend Head</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-lbl">Delete</div>
+      <div class="pg-row">
+        <button class="btn dng" onclick="pgDelHead()">Delete Head</button>
+        <button class="btn dng" onclick="pgDelTail()">Delete Tail</button>
+        <input class="pg-in" id="pg-idx" type="number" placeholder="index" min="0">
+        <button class="btn dng" onclick="pgDelAt(parseInt(document.getElementById('pg-idx').value))">Delete at Index</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-lbl">Traverse &amp; Operations</div>
+      <div class="pg-row">
+        <input class="pg-in" id="pg-srch" type="number" placeholder="value">
+        <button class="btn" onclick="pgSearch(parseInt(document.getElementById('pg-srch').value))">🔍 Search</button>
+        <button class="btn" onclick="pgTraverseBack()">← Backward Traverse</button>
+        <button class="btn" onclick="pgReverse()">⇄ Reverse</button>
+        <button class="btn dng" onclick="pgClear()">🗑 Clear</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-lbl">Log</div>
+      <div class="pg-log" id="pg-log">
+        <div class="ll"><span class="lt">--:--:--</span><span class="linf">Playground ready — demo list: 12 ⇄ 37 ⇄ 55</span></div>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('pg-val').addEventListener('keydown',e=>{ if(e.key==='Enter') pgAppend(parseInt(e.target.value)); });
+}
+
+// ═══════════════════════════════════════════
+// MEMORY TAB
+// ═══════════════════════════════════════════
+function buildMemTab() {
+  const tc = document.getElementById('tab-content');
+  if (!pgNodes.length) {
+    tc.innerHTML = `<div class="mem-body"><p style="font-family:var(--mono);color:var(--muted);font-size:.8rem;">List is empty. Add nodes in the Playground tab first.</p></div>`;
+    return;
+  }
+  const rows = pgNodes.map((node,i) => {
+    const prevAddr = i>0 ? pgNodes[i-1].addr : 'NULL';
+    const nextAddr = i<pgNodes.length-1 ? pgNodes[i+1].addr : 'NULL';
+    const isHead=i===0, isTail=i===pgNodes.length-1;
+    return `<tr>
+      <td class="c-addr">${node.addr}</td>
+      <td class="c-name">node_${i}</td>
+      <td class="c-prev">${prevAddr}</td>
+      <td class="c-data">${node.data}</td>
+      <td class="c-next">${nextAddr}</td>
+      <td class="c-note">${isHead?'← head ':''}${isTail?'← tail / NULL terminator':''}</td>
+    </tr>`;
+  }).join('');
+
+  tc.innerHTML = `<div class="mem-body">
+    <p style="font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-bottom:12px;">Heap layout — each <code style="color:var(--node-hl)">DNode</code> is ~24 bytes on 64-bit (int + two 8-byte pointers)</p>
+    <table class="mtable">
+      <thead><tr>
+        <th>Address</th><th>Variable</th>
+        <th style="color:var(--prev-color)">prev (DNode*)</th>
+        <th>data (int)</th>
+        <th style="color:var(--next-color)">next (DNode*)</th>
+        <th>Notes</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-top:12px;">
+      head → ${pgNodes[0].addr} &nbsp;|&nbsp; tail → ${pgNodes[pgNodes.length-1].addr} &nbsp;|&nbsp;
+      Length: ${pgNodes.length} &nbsp;|&nbsp; Size per node: 24 bytes (64-bit)
+    </p>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// CHEATSHEET
+// ═══════════════════════════════════════════
+function buildCheat() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="cheat-body">
+
+  <div class="cblock">
+    <div class="cblock-hdr">Struct Definition</div>
+    <div class="cblock-code"><span class="kw">typedef</span> <span class="kw">struct</span> <span class="ty">DNode</span> {
+  <span class="ty">int</span>           <span class="va">data</span><span class="op">;</span>
+  <span class="kw">struct</span> <span class="ty">DNode</span>  <span class="pt">*prev</span><span class="op">;</span>   <span class="cm">// ← backward</span>
+  <span class="kw">struct</span> <span class="ty">DNode</span>  <span class="pt">*next</span><span class="op">;</span>   <span class="cm">// → forward</span>
+} <span class="ty">DNode</span><span class="op">;</span>
+
+<span class="ty">DNode</span> <span class="pt">*head</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">,</span> <span class="pt">*tail</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span></div>
+  </div>
+
+  <div class="cblock">
+    <div class="cblock-hdr">Create a Node</div>
+    <div class="cblock-code"><span class="ty">DNode</span><span class="pt">*</span> <span class="fn">newNode</span><span class="op">(</span><span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">DNode</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">DNode</span><span class="op">));</span>
+  <span class="va">n</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="va">val</span><span class="op">;</span>
+  <span class="va">n</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>
+  <span class="va">n</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>
+  <span class="kw">return</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+  </div>
+
+  <div class="cblock">
+    <div class="cblock-hdr">Append to Tail — O(1) with tail pointer</div>
+    <div class="cblock-code"><span class="kw">void</span> <span class="fn">append</span><span class="op">(</span><span class="ty">DNode</span> <span class="pt">**head</span><span class="op">,</span> <span class="ty">DNode</span> <span class="pt">**tail</span><span class="op">,</span> <span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">DNode</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">newNode</span><span class="op">(</span><span class="va">val</span><span class="op">);</span>
+  <span class="kw">if</span> <span class="op">(!</span><span class="pt">*head</span><span class="op">)</span> { <span class="pt">*head</span> <span class="op">=</span> <span class="pt">*tail</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span> <span class="kw">return</span><span class="op">;</span> }
+  <span class="va">n</span><span class="ar">-></span><span class="pt">prev</span>       <span class="op">=</span> <span class="pt">*tail</span><span class="op">;</span>    <span class="cm">// back-link</span>
+  <span class="op">(*</span><span class="pt">tail</span><span class="op">)-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>       <span class="cm">// forward-link</span>
+  <span class="pt">*tail</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+  </div>
+
+  <div class="cblock">
+    <div class="cblock-hdr">Prepend to Head — O(1)</div>
+    <div class="cblock-code"><span class="kw">void</span> <span class="fn">prepend</span><span class="op">(</span><span class="ty">DNode</span> <span class="pt">**head</span><span class="op">,</span> <span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {
+  <span class="ty">DNode</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">newNode</span><span class="op">(</span><span class="va">val</span><span class="op">);</span>
+  <span class="va">n</span><span class="ar">-></span><span class="pt">next</span>        <span class="op">=</span> <span class="pt">*head</span><span class="op">;</span>
+  <span class="kw">if</span> <span class="op">(</span><span class="pt">*head</span><span class="op">)</span> <span class="op">(</span><span class="pt">*head</span><span class="op">)-></span><span class="pt">prev</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+  <span class="pt">*head</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+}</div>
+  </div>
+
+  <div class="cblock">
+    <div class="cblock-hdr">Delete a Known Node — O(1) ← the superpower!</div>
+    <div class="cblock-code"><span class="kw">void</span> <span class="fn">deleteNode</span><span class="op">(</span><span class="ty">DNode</span> <span class="pt">**head</span><span class="op">,</span> <span class="ty">DNode</span> <span class="pt">**tail</span><span class="op">,</span> <span class="ty">DNode</span> <span class="pt">*node</span><span class="op">)</span> {
+  <span class="kw">if</span> <span class="op">(</span><span class="va">node</span><span class="ar">-></span><span class="pt">prev</span><span class="op">)</span>  <span class="va">node</span><span class="ar">-></span><span class="pt">prev</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="va">node</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+  <span class="kw">else</span>           <span class="pt">*head</span>             <span class="op">=</span> <span class="va">node</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>
+  <span class="kw">if</span> <span class="op">(</span><span class="va">node</span><span class="ar">-></span><span class="pt">next</span><span class="op">)</span>  <span class="va">node</span><span class="ar">-></span><span class="pt">next</span><span class="ar">-></span><span class="pt">prev</span> <span class="op">=</span> <span class="va">node</span><span class="ar">-></span><span class="pt">prev</span><span class="op">;</span>
+  <span class="kw">else</span>           <span class="pt">*tail</span>             <span class="op">=</span> <span class="va">node</span><span class="ar">-></span><span class="pt">prev</span><span class="op">;</span>
+  <span class="fn">free</span><span class="op">(</span><span class="va">node</span><span class="op">);</span>
+}</div>
+  </div>
+
+  <div class="cblock">
+    <div class="cblock-hdr">Traverse Both Directions</div>
+    <div class="cblock-code"><span class="cm">// Forward</span>
+<span class="kw">for</span> <span class="op">(</span><span class="ty">DNode</span> <span class="pt">*c</span> <span class="op">=</span> <span class="va">head</span><span class="op">;</span> <span class="va">c</span><span class="op">;</span> <span class="va">c</span> <span class="op">=</span> <span class="va">c</span><span class="ar">-></span><span class="pt">next</span><span class="op">)</span>
+  <span class="fn">printf</span><span class="op">(</span><span class="st">"%d → "</span><span class="op">,</span> <span class="va">c</span><span class="ar">-></span><span class="va">data</span><span class="op">);</span>
+
+<span class="cm">// Backward (start from tail)</span>
+<span class="kw">for</span> <span class="op">(</span><span class="ty">DNode</span> <span class="pt">*c</span> <span class="op">=</span> <span class="va">tail</span><span class="op">;</span> <span class="va">c</span><span class="op">;</span> <span class="va">c</span> <span class="op">=</span> <span class="va">c</span><span class="ar">-></span><span class="pt">prev</span><span class="op">)</span>
+  <span class="fn">printf</span><span class="op">(</span><span class="st">"%d ← "</span><span class="op">,</span> <span class="va">c</span><span class="ar">-></span><span class="va">data</span><span class="op">);</span></div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;">
+    <div class="cpx-title">DLL vs SLL — Complexity Comparison</div>
+    <table class="mtable" style="font-size:.74rem;">
+      <thead><tr><th>Operation</th><th>Singly LL</th><th style="color:var(--node-hl)">Doubly LL</th><th>Why?</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--node-hl)">Delete known node</td><td style="color:var(--next-color)">O(n)</td><td style="color:var(--tail-color)">O(1)</td><td style="color:var(--muted)">prev ptr gives you predecessor</td></tr>
+        <tr><td style="color:var(--node-hl)">Backward traverse</td><td style="color:var(--next-color)">O(n) restart</td><td style="color:var(--tail-color)">O(1) step</td><td style="color:var(--muted)">just follow prev</td></tr>
+        <tr><td style="color:var(--node-hl)">Append (with tail ptr)</td><td style="color:var(--tail-color)">O(1)</td><td style="color:var(--tail-color)">O(1)</td><td style="color:var(--muted)">both keep tail pointer</td></tr>
+        <tr><td style="color:var(--node-hl)">Prepend</td><td style="color:var(--tail-color)">O(1)</td><td style="color:var(--tail-color)">O(1)</td><td style="color:var(--muted)">just update head</td></tr>
+        <tr><td style="color:var(--node-hl)">Search</td><td style="color:var(--data-color)">O(n)</td><td style="color:var(--data-color)">O(n)</td><td style="color:var(--muted)">no random access either way</td></tr>
+        <tr><td style="color:var(--node-hl)">Space per node</td><td style="color:var(--tail-color)">1 pointer</td><td style="color:var(--next-color)">2 pointers</td><td style="color:var(--muted)">+8 bytes on 64-bit</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-family:var(--mono);font-size:.7rem;line-height:1.8;color:var(--muted);">
+      <span style="color:var(--tail-color)">✓ Use DLL when:</span> frequent deletion of known nodes, need backward traversal, implementing deque/LRU cache<br>
+      <span style="color:var(--next-color)">✗ Use SLL when:</span> memory is tight, only forward traversal needed, simpler code is priority
+    </div>
+  </div>
+
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════
+const QUIZ = [
+  {
+    q:'What is the main structural difference between a singly and doubly linked list?',
+    opts:['DLL stores data in both directions','Each DLL node has both a prev and next pointer','DLL uses arrays internally','DLL does not need a head pointer'],
+    ans:1, exp:'Each node in a doubly linked list has two pointers: prev (backward) and next (forward), enabling bidirectional traversal.'
+  },
+  {
+    q:'Why is deleting a known node O(1) in a DLL but O(n) in a SLL?',
+    opts:[
+      'DLL nodes are smaller in memory',
+      'In SLL you must traverse to find the predecessor; in DLL node->prev gives it directly',
+      'DLL stores a length counter',
+      'free() is faster for DLL'
+    ],
+    ans:1, exp:'In a SLL you have no way to reach the predecessor without traversal. In a DLL, node->prev IS the predecessor — so bypass and free is O(1).'
+  },
+  {
+    q:`When appending n2 after n1 in a DLL, how many pointer assignments are needed?\n(ignore head/tail updates)`,
+    opts:['1 (just n1->next = n2)','2 (n2->prev = n1 AND n1->next = n2)','3','4'],
+    ans:1, exp:'Two assignments: n2->prev = n1 (back-link) and n1->next = n2 (forward-link). Both directions must be wired.'
+  },
+  {
+    q:'What happens if you forget to set n2->prev = n1 when appending n2 after n1?',
+    opts:[
+      'The program crashes immediately',
+      'n2->prev is NULL/garbage — backward traversal from n2 will be wrong or undefined behavior',
+      'The list becomes circular',
+      'Nothing — prev is optional in a DLL'
+    ],
+    ans:1, exp:'n2->prev would be uninitialized (garbage pointer or NULL). Forward traversal still works, but backward traversal from n2 will be broken or cause undefined behavior.'
+  },
+  {
+    q:'What is the correct way to traverse a DLL backward from the tail?',
+    opts:[
+      'for (DNode *c = head; c; c = c->next)',
+      'for (DNode *c = tail; c; c = c->prev)',
+      'for (DNode *c = head; c; c = c->prev)',
+      'You cannot traverse backward without reversing the list first'
+    ],
+    ans:1, exp:'Start at tail and follow prev pointers: for (DNode *c = tail; c; c = c->prev). This is the whole point of the prev pointer!'
+  },
+  {
+    q:'Why do we need to handle the head and tail pointers specially when deleting a node?',
+    opts:[
+      'DLL nodes store the head address',
+      'If we delete the head, head must advance; if we delete the tail, tail must retreat',
+      'Only the head needs to be updated',
+      'Deleting always starts at the head'
+    ],
+    ans:1, exp:'If you delete the head node, head must point to head->next. If you delete the tail, tail must point to tail->prev. Otherwise those sentinel pointers become dangling.'
+  },
+  {
+    q:'A doubly linked list node on a 64-bit system storing an int typically uses how many bytes?',
+    opts:['8 bytes','12 bytes','20 bytes','24 bytes'],
+    ans:3, exp:'int (4 bytes) + padding (4 bytes) + prev pointer (8 bytes) + next pointer (8 bytes) = 24 bytes. Struct alignment pads the int to a full 8-byte slot.'
+  }
+];
+
+function buildQuiz() {
+  if (!qState.length) qState = new Array(QUIZ.length).fill(null);
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="quiz-body">
+    ${QUIZ.map((q,qi)=>`
+      <div class="qcard">
+        <h4><span style="color:var(--head-color)">Q${qi+1}.</span> ${q.q.replace(/\n/g,'<br><br>')}</h4>
+        <div class="qopts">
+          ${q.opts.map((opt,oi)=>`
+            <button class="qopt" id="qo${qi}_${oi}" onclick="answerQ(${qi},${oi})">${['A','B','C','D'][oi]}. ${opt}</button>
+          `).join('')}
+        </div>
+        <div class="qfb" id="qfb${qi}"></div>
+      </div>`).join('')}
+    <div style="display:flex;gap:12px;align-items:center;padding-bottom:8px;">
+      <button class="btn" onclick="resetQuiz()">↺ Restart Quiz</button>
+      <span id="qscore" style="font-family:var(--mono);font-size:.78rem;color:var(--muted)"></span>
+    </div>
+  </div>`;
+  qState.forEach((ans,qi)=>{ if(ans!==null) applyQAnswer(qi,ans); });
+}
+
+function answerQ(qi,oi) {
+  if(qState[qi]!==null) return;
+  qState[qi]=oi; applyQAnswer(qi,oi); updateQScore();
+}
+function applyQAnswer(qi,oi) {
+  const q=QUIZ[qi];
+  document.querySelectorAll(`[id^="qo${qi}_"]`).forEach((btn,i)=>{
+    btn.disabled=true;
+    if(i===q.ans) btn.classList.add('ok');
+    else if(i===oi) btn.classList.add('bad');
+  });
+  const fb=document.getElementById('qfb'+qi);
+  if(!fb) return;
+  fb.textContent=(oi===q.ans?'✓ Correct! ':'✗ Wrong. ')+q.exp;
+  fb.className='qfb show '+(oi===q.ans?'pass':'fail');
+}
+function updateQScore() {
+  const answered=qState.filter(a=>a!==null).length;
+  const correct=qState.filter((a,i)=>a===QUIZ[i].ans).length;
+  const el=document.getElementById('qscore');
+  if(el&&answered===QUIZ.length) {
+    el.textContent=`Score: ${correct} / ${QUIZ.length}`;
+    el.style.color=correct>=5?'var(--tail-color)':'var(--next-color)';
+  }
+}
+function resetQuiz() { qState=new Array(QUIZ.length).fill(null); buildQuiz(); }
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+// Pre-seed playground
+pgNodes = [
+  {id:pgNextId++,data:12,addr:pgAddr()},
+  {id:pgNextId++,data:37,addr:pgAddr()},
+  {id:pgNextId++,data:55,addr:pgAddr()},
+];
+pgAddLog('Demo list: 12 ⇄ 37 ⇄ 55','linf');
+
+renderCode([]);
+applyStep(0);
+</script>
+</body>
+</html>

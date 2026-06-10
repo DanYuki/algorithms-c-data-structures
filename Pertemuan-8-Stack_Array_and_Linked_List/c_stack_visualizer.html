@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stack in C — Visualizer</title>
+<style>
+/* ── system font stack, no external requests ── */
+:root {
+  --bg:       #0f0f0f;
+  --bg2:      #161616;
+  --surface:  #1e1e1e;
+  --surface2: #252525;
+  --border:   #2e2e2e;
+  --border2:  #3a3a3a;
+  --muted:    #585858;
+  --dim:      #7a7a7a;
+  --text:     #d0d0d0;
+  --bright:   #f0f0f0;
+
+  /* ONE bold accent: orange for TOP pointer */
+  --orange:   #e8834a;
+  --orange-d: #b85f2e;
+  --orange-g: rgba(232,131,74,0.15);
+
+  /* secondary accents */
+  --green:    #6dbb7a;
+  --red:      #d05f5f;
+  --blue:     #5f9fd0;
+  --yellow:   #c9a84c;
+
+  /* stack block colors by depth */
+  --b0: #2a2218;  /* bottom tint */
+  --b1: #221e2a;
+  --b2: #18242a;
+
+  --mono: 'Cascadia Code','Consolas','Courier New',monospace;
+  --sans: 'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── subtle corner grid ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+.hdr {
+  position: relative; z-index: 2;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 24px;
+  display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0;
+}
+.hdr-title {
+  font-family: var(--mono);
+  font-size: 0.92rem; font-weight: 700;
+  color: var(--bright); letter-spacing: -0.3px;
+}
+.hdr-title .kw { color: #c678dd; }
+.hdr-title .ty { color: var(--yellow); }
+.hdr-title .op { color: var(--muted); }
+.hdr-chip {
+  font-family: var(--mono); font-size: 0.64rem;
+  padding: 3px 9px; border-radius: 2px;
+  background: var(--orange-g);
+  color: var(--orange);
+  border: 1px solid rgba(232,131,74,0.3);
+  letter-spacing: 0.05em;
+}
+.hdr-sub { margin-left: auto; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+
+/* ═══════════════════════════════════════
+   TABS
+═══════════════════════════════════════ */
+.tabbar {
+  position: relative; z-index: 2;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex; padding: 0 20px;
+  flex-shrink: 0; overflow-x: auto;
+}
+.tbtn {
+  font-family: var(--mono); font-size: 0.74rem;
+  padding: 10px 16px; border: none; background: none;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s; white-space: nowrap;
+}
+.tbtn:hover { color: var(--text); }
+.tbtn.on { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* ═══════════════════════════════════════
+   BODY LAYOUT
+═══════════════════════════════════════ */
+.body {
+  position: relative; z-index: 1;
+  flex: 1; display: flex; overflow: hidden; min-height: 0;
+}
+
+/* ── sidebar ── */
+.sidebar {
+  width: 290px; min-width: 240px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+}
+.side-bar-top {
+  padding: 9px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.67rem; color: var(--muted);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.mac { display:flex; gap:5px; }
+.mac span { width:8px;height:8px;border-radius:50%; }
+.code-scroll { flex: 1; overflow-y: auto; padding: 10px 0; }
+
+.cline {
+  display: flex; gap: 0;
+  padding: 1px 0; cursor: pointer;
+  transition: background .1s; position: relative;
+}
+.cline:hover { background: rgba(232,131,74,0.04); }
+.cline.hl    { background: rgba(232,131,74,0.1); }
+.cline.hl::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px; background: var(--orange);
+}
+.lnum { min-width: 32px; padding: 0 8px; color: var(--muted); font-family: var(--mono); font-size: 0.67rem; text-align: right; user-select: none; padding-top: 2px; }
+.lcode { font-family: var(--mono); font-size: 0.75rem; line-height: 1.85; flex: 1; padding-right: 10px; word-break: break-word; }
+
+/* syntax */
+.kw{color:#c678dd;} .ty{color:var(--yellow);} .va{color:#61afef;}
+.pt{color:var(--orange);} .nu{color:var(--green);}
+.op{color:var(--muted);} .cm{color:var(--muted);font-style:italic;}
+.fn{color:#b5dcfe;} .st{color:#98c379;} .ar{color:var(--orange);}
+
+/* ── canvas side ── */
+.canvas-side {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; min-height: 0;
+}
+
+/* ── viz area ── */
+.viz-area {
+  flex: 1; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 28px 20px;
+  position: relative;
+  transition: flex .3s;
+}
+.viz-area.compact {
+  flex: 0 0 260px; min-height: 260px; max-height: 260px;
+  padding: 16px 20px 8px;
+}
+
+/* ════════════════════════════════════
+   STACK VISUAL
+════════════════════════════════════ */
+.stack-scene {
+  display: flex;
+  gap: 32px;
+  align-items: flex-end;
+}
+
+/* The physical stack column */
+.stack-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+  width: 180px;
+}
+
+/* container walls */
+.stack-walls {
+  position: relative;
+  border-left:  3px solid var(--border2);
+  border-right: 3px solid var(--border2);
+  border-bottom: 3px solid var(--border2);
+  border-radius: 0 0 6px 6px;
+  min-height: 60px;
+  padding: 0;
+  overflow: visible;
+}
+
+/* individual block */
+.sblock {
+  width: 100%;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px;
+  border-top: 1px solid var(--border2);
+  background: var(--surface2);
+  position: relative;
+  transition: background .3s;
+  cursor: default;
+}
+.sblock:first-child { /* topmost rendered item */ }
+
+.sblock.is-top {
+  background: rgba(232,131,74,0.12);
+  border-top: 2px solid var(--orange);
+}
+.sblock.push-in {
+  animation: pushIn .35s cubic-bezier(.2,0,.3,1) both;
+}
+.sblock.pop-out {
+  animation: popOut .3s ease forwards;
+}
+
+@keyframes pushIn {
+  from { opacity: 0; transform: translateY(-30px) scaleY(0.6); }
+  to   { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+@keyframes popOut {
+  to   { opacity: 0; transform: translateY(-28px) scaleY(0.5); }
+}
+
+.sblock-index {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted);
+}
+.sblock-val {
+  font-family: var(--mono); font-size: 1rem; font-weight: 700;
+  color: var(--bright);
+}
+.sblock-addr {
+  font-family: var(--mono); font-size: 0.58rem; color: var(--muted);
+}
+
+/* TOP pointer arrow */
+.top-pointer {
+  position: absolute;
+  right: -90px;
+  display: flex; align-items: center; gap: 6px;
+  pointer-events: none;
+  transition: top .35s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap;
+}
+.top-arrow-line {
+  width: 52px; height: 2px;
+  background: linear-gradient(to right, transparent, var(--orange));
+  position: relative;
+}
+.top-arrow-line::after {
+  content: '▶';
+  position: absolute; right: -10px; top: -7px;
+  color: var(--orange); font-size: 0.65rem;
+}
+.top-label {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  color: var(--orange);
+  background: var(--orange-g);
+  border: 1px solid rgba(232,131,74,0.3);
+  padding: 2px 8px; border-radius: 3px;
+}
+
+/* stack top open indicator */
+.stack-open {
+  text-align: center;
+  padding: 8px 0 4px;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+/* empty state */
+.stack-empty-msg {
+  display: flex; align-items: center; justify-content: center;
+  height: 60px;
+  font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+}
+
+/* stack bottom label */
+.stack-bottom-lbl {
+  text-align: center;
+  padding: 5px 0 0;
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+/* info panel next to stack */
+.stack-info {
+  display: flex; flex-direction: column; gap: 10px;
+  padding-bottom: 4px; min-width: 160px;
+}
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+.info-label {
+  font-family: var(--mono); font-size: 0.6rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.info-val {
+  font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+  color: var(--bright);
+}
+.info-val.top-v  { color: var(--orange); }
+.info-val.size-v { color: var(--blue); }
+.info-val.full-v { color: var(--red); }
+.info-val.ok-v   { color: var(--green); }
+
+/* ── explain bar ── */
+.explain-bar {
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 10px 22px;
+  min-height: 50px; display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.explain-icon { font-size: 1rem; flex-shrink: 0; }
+.explain-txt  { font-size: 0.84rem; line-height: 1.6; }
+.explain-txt code {
+  font-family: var(--mono); font-size: 0.76rem;
+  background: var(--surface); padding: 1px 6px; border-radius: 3px; color: var(--orange);
+}
+
+/* ── control bar ── */
+.ctrl-bar {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 9px 22px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.btn {
+  font-family: var(--mono); font-size: 0.73rem;
+  padding: 6px 14px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  border-radius: 4px; cursor: pointer; transition: all .15s;
+}
+.btn:hover { border-color: var(--orange); color: var(--orange); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn.prime { background: var(--orange); color: #0f0f0f; border-color: var(--orange); font-weight: 700; }
+.btn.prime:hover { background: #f09a65; }
+.btn.dng { border-color: var(--red); color: var(--red); }
+.btn.dng:hover { background: rgba(208,95,95,0.1); }
+
+.dots-row { display: flex; gap: 5px; align-items: center; }
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); transition: all .25s; }
+.sdot.done { background: var(--orange); opacity: 0.6; }
+.sdot.cur  { background: var(--orange); transform: scale(1.5); box-shadow: 0 0 6px var(--orange); }
+.step-lbl  { margin-left: auto; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+
+/* ═══════════════════════════════════════
+   TAB CONTENT
+═══════════════════════════════════════ */
+.tab-content {
+  flex: 1; overflow-y: auto; display: none; min-height: 0;
+  flex-direction: column;
+}
+
+/* ── playground ── */
+.pg-wrap { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+.sec-lbl { font-family: var(--mono); font-size: 0.67rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; }
+.pg-row  { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.pg-in {
+  font-family: var(--mono); font-size: 0.8rem;
+  padding: 6px 11px; background: var(--surface); border: 1px solid var(--border2);
+  color: var(--bright); border-radius: 4px; width: 90px; outline: none;
+  transition: border-color .15s;
+}
+.pg-in:focus { border-color: var(--orange); }
+.pg-log {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 10px 13px;
+  font-family: var(--mono); font-size: 0.72rem; line-height: 1.75;
+  min-height: 90px; max-height: 140px; overflow-y: auto;
+}
+.ll { display: flex; gap: 8px; }
+.lt { color: var(--muted); }
+.lok  { color: var(--green); }
+.lerr { color: var(--red); }
+.linf { color: var(--blue); }
+.lwrn { color: var(--yellow); }
+
+/* impl selector */
+.impl-tabs {
+  display: flex; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 3px;
+  width: fit-content;
+}
+.impl-tab {
+  font-family: var(--mono); font-size: 0.72rem;
+  padding: 5px 14px; border: none; background: none;
+  color: var(--muted); cursor: pointer; border-radius: 3px; transition: all .15s;
+}
+.impl-tab.on { background: var(--orange); color: #0f0f0f; font-weight: 700; }
+
+/* ── memory table ── */
+.mem-wrap { padding: 18px 22px; flex: 1; overflow-y: auto; }
+.mtbl {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--mono); font-size: 0.75rem;
+}
+.mtbl th {
+  text-align: left; padding: 8px 12px;
+  background: var(--surface2); color: var(--muted);
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 1px solid var(--border);
+}
+.mtbl td { padding: 9px 12px; border-bottom: 1px solid rgba(46,46,46,0.7); }
+.mtbl tr.top-row td { background: rgba(232,131,74,0.07); }
+.mtbl tr:hover td { background: rgba(255,255,255,0.02); }
+.c-idx  { color: var(--muted); }
+.c-addr { color: #c678dd; }
+.c-val  { color: var(--bright); font-weight: 700; }
+.c-top  { color: var(--orange); font-weight: 700; }
+.c-note { color: var(--muted); font-size: 0.67rem; }
+
+/* ── cheatsheet ── */
+.cheat-wrap { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+.cblk { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.cblk-hdr {
+  padding: 8px 14px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.67rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.cblk-code { padding: 13px 14px; font-family: var(--mono); font-size: 0.76rem; line-height: 1.82; overflow-x: auto; }
+
+/* ── quiz ── */
+.quiz-wrap { padding: 18px 22px; display: flex; flex-direction: column; gap: 13px; flex: 1; overflow-y: auto; }
+.qcard { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+.qcard h4 { font-family: var(--mono); font-size: 0.79rem; color: var(--bright); margin-bottom: 11px; line-height: 1.55; }
+.qopts { display: flex; flex-direction: column; gap: 6px; }
+.qopt {
+  font-family: var(--mono); font-size: 0.76rem; padding: 7px 11px;
+  background: var(--bg2); border: 1px solid var(--border2); color: var(--text);
+  border-radius: 4px; cursor: pointer; text-align: left; transition: all .15s;
+}
+.qopt:hover { border-color: var(--orange); color: var(--orange); }
+.qopt.ok  { border-color: var(--green); background: rgba(109,187,122,0.09); color: var(--green); }
+.qopt.bad { border-color: var(--red);   background: rgba(208,95,95,0.09);   color: var(--red); }
+.qfb { margin-top: 8px; padding: 7px 10px; border-radius: 4px; font-family: var(--mono); font-size: 0.72rem; display: none; line-height: 1.5; }
+.qfb.show { display: block; }
+.qfb.pass { background: rgba(109,187,122,0.1); color: var(--green); border: 1px solid rgba(109,187,122,0.25); }
+.qfb.fail { background: rgba(208,95,95,0.1);   color: var(--red);   border: 1px solid rgba(208,95,95,0.25); }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+.slide-up { animation: slideUp .28s ease both; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-title">
+    <span class="kw">int</span> <span class="ty">stack</span><span class="op">[</span><span class="nu">MAX</span><span class="op">]</span><span class="op">;</span>
+    &nbsp;<span class="op">|</span>&nbsp;
+    <span class="kw">int</span> <span class="pt">top</span> <span class="op">=</span> <span class="nu">-1</span><span class="op">;</span>
+  </div>
+  <div class="hdr-chip">LIFO</div>
+  <div class="hdr-sub">Stack in C — Interactive Visualizer</div>
+</header>
+
+<!-- TABS -->
+<nav class="tabbar" id="tabbar">
+  <button class="tbtn on"  onclick="switchTab('learn',this)">① Learn</button>
+  <button class="tbtn"     onclick="switchTab('play',this)">② Playground</button>
+  <button class="tbtn"     onclick="switchTab('mem',this)">③ Memory</button>
+  <button class="tbtn"     onclick="switchTab('cheat',this)">④ Cheatsheet</button>
+  <button class="tbtn"     onclick="switchTab('quiz',this)">⑤ Quiz</button>
+</nav>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-bar-top">
+      <div class="mac">
+        <span style="background:#ff5f57"></span>
+        <span style="background:#febc2e"></span>
+        <span style="background:#28c840"></span>
+      </div>
+      stack.c
+    </div>
+    <div class="code-scroll" id="code-scroll"></div>
+  </aside>
+
+  <!-- CANVAS SIDE -->
+  <div class="canvas-side">
+
+    <!-- VIZ AREA -->
+    <div class="viz-area" id="viz-area">
+      <div class="stack-scene" id="stack-scene">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- EXPLAIN BAR -->
+    <div class="explain-bar" id="explain-bar">
+      <span class="explain-icon">💡</span>
+      <span class="explain-txt" id="explain-txt">
+        A <strong>stack</strong> is a Last-In, First-Out (LIFO) data structure. Think of a stack of plates — you can only add or remove from the top. Press <strong>Next ▶</strong> to begin.
+      </span>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div class="tab-content" id="tab-content"></div>
+
+    <!-- CONTROL BAR -->
+    <div class="ctrl-bar" id="ctrl-bar">
+      <button class="btn" id="btn-prev" onclick="prevStep()">◀ Prev</button>
+      <div class="dots-row" id="dots-row"></div>
+      <button class="btn prime" id="btn-next" onclick="nextStep()">Next ▶</button>
+      <button class="btn" onclick="goReset()">↺ Reset</button>
+      <span class="step-lbl" id="step-lbl">Step 0</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CODE LINES — array-based implementation
+// ══════════════════════════════════════════════
+const CODE = [
+/*0*/  `<span class="cm">// Array-based stack</span>`,
+/*1*/  `<span class="kw">#define</span> <span class="nu">MAX</span> <span class="nu">5</span>`,
+/*2*/  ``,
+/*3*/  `<span class="ty">int</span> <span class="va">stack</span><span class="op">[</span><span class="nu">MAX</span><span class="op">];</span>`,
+/*4*/  `<span class="ty">int</span> <span class="pt">top</span> <span class="op">=</span> <span class="nu">-1</span><span class="op">;</span>  <span class="cm">// empty</span>`,
+/*5*/  ``,
+/*6*/  `<span class="cm">// Push</span>`,
+/*7*/  `<span class="kw">void</span> <span class="fn">push</span><span class="op">(</span><span class="ty">int</span> <span class="va">val</span><span class="op">)</span> {`,
+/*8*/  `&nbsp;&nbsp;<span class="kw">if</span> <span class="op">(</span><span class="pt">top</span> <span class="op">==</span> <span class="nu">MAX</span><span class="op">-</span><span class="nu">1</span><span class="op">)</span> <span class="kw">return</span><span class="op">;</span> <span class="cm">// full</span>`,
+/*9*/  `&nbsp;&nbsp;<span class="va">stack</span><span class="op">[++</span><span class="pt">top</span><span class="op">]</span> <span class="op">=</span> <span class="va">val</span><span class="op">;</span>`,
+/*10*/ `}`,
+/*11*/ ``,
+/*12*/ `<span class="cm">// Pop</span>`,
+/*13*/ `<span class="ty">int</span> <span class="fn">pop</span><span class="op">()</span> {`,
+/*14*/ `&nbsp;&nbsp;<span class="kw">if</span> <span class="op">(</span><span class="pt">top</span> <span class="op">==</span> <span class="nu">-1</span><span class="op">)</span> <span class="kw">return</span> <span class="nu">-1</span><span class="op">;</span> <span class="cm">// empty</span>`,
+/*15*/ `&nbsp;&nbsp;<span class="kw">return</span> <span class="va">stack</span><span class="op">[</span><span class="pt">top</span><span class="op">--];</span>`,
+/*16*/ `}`,
+/*17*/ ``,
+/*18*/ `<span class="cm">// Peek</span>`,
+/*19*/ `<span class="ty">int</span> <span class="fn">peek</span><span class="op">()</span> {`,
+/*20*/ `&nbsp;&nbsp;<span class="kw">return</span> <span class="op">(</span><span class="pt">top</span> <span class="op">==</span> <span class="nu">-1</span><span class="op">)</span> <span class="op">?</span> <span class="nu">-1</span>`,
+/*21*/ `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="op">:</span> <span class="va">stack</span><span class="op">[</span><span class="pt">top</span><span class="op">];</span>`,
+/*22*/ `}`,
+/*23*/ ``,
+/*24*/ `<span class="cm">// isEmpty / isFull</span>`,
+/*25*/ `<span class="ty">int</span> <span class="fn">isEmpty</span><span class="op">()</span> { <span class="kw">return</span> <span class="pt">top</span> <span class="op">==</span> <span class="nu">-1</span><span class="op">; }</span>`,
+/*26*/ `<span class="ty">int</span> <span class="fn">isFull</span><span class="op">()</span>  { <span class="kw">return</span> <span class="pt">top</span> <span class="op">==</span> <span class="nu">MAX</span><span class="op">-</span><span class="nu">1</span><span class="op">; }</span>`,
+];
+
+// ══════════════════════════════════════════════
+// LEARN STEPS
+// Each step: { code[], exp, items[], top, MAX, highlight? }
+// items: values from bottom to top (index 0 = bottom)
+// ══════════════════════════════════════════════
+const MAX_LEARN = 5;
+const STEPS = [
+  {
+    code: [],
+    exp: `A <strong>stack</strong> is a LIFO (Last-In, First-Out) structure. Only the <strong>top</strong> is accessible — like a stack of plates. The two core operations are <code>push()</code> (add to top) and <code>pop()</code> (remove from top).`,
+    items: [], top: -1
+  },
+  {
+    code: [1,3,4],
+    exp: `Array-based stack: <code>int stack[MAX]</code> reserves <strong>5 slots</strong> in memory. <code>top = -1</code> means the stack is empty. <code>top</code> always holds the index of the most-recently-pushed element.`,
+    items: [], top: -1
+  },
+  {
+    code: [6,7,8,9,10],
+    exp: `<code>push(10)</code> — first check: <code>top == MAX-1</code>? No (top is -1). Then <code>stack[++top] = val</code>: pre-increment top to 0, write 10 at index 0. Stack: <strong>[10]</strong>, top = 0.`,
+    items: [10], top: 0, newTop: true
+  },
+  {
+    code: [9],
+    exp: `<code>push(25)</code> — top is 0, not full. <code>stack[++top] = 25</code>: top becomes 1, write 25. Stack: <strong>[10, 25]</strong>, top = 1. Notice 10 is still there, untouched.`,
+    items: [10, 25], top: 1, newTop: true
+  },
+  {
+    code: [9],
+    exp: `<code>push(47)</code> — top = 2. Stack: <strong>[10, 25, 47]</strong>. The <code>top</code> pointer moves up with every push. It always points at the element you'd get if you called <code>peek()</code> right now.`,
+    items: [10, 25, 47], top: 2, newTop: true
+  },
+  {
+    code: [18,19,20,21,22],
+    exp: `<code>peek()</code> — returns <code>stack[top]</code> = <code>stack[2]</code> = <strong>47</strong> without removing it. Unlike <code>pop()</code>, <code>top</code> doesn't change. Safe to call repeatedly.`,
+    items: [10, 25, 47], top: 2, peekHL: true
+  },
+  {
+    code: [12,13,14,15,16],
+    exp: `<code>pop()</code> — <code>top != -1</code> so not empty. Returns <code>stack[top--]</code>: reads <code>stack[2]</code> = <strong>47</strong>, then decrements top to 1. The value 47 is still in the array byte but is now <em>logically gone</em> — top no longer points at it.`,
+    items: [10, 25], top: 1, popHL: true, poppedVal: 47
+  },
+  {
+    code: [12,13,14,15,16],
+    exp: `<code>pop()</code> again — returns <strong>25</strong>, top = 0. Stack: <strong>[10]</strong>. This is LIFO in action: 47 was pushed last, popped first; 25 next.`,
+    items: [10], top: 0, popHL: true, poppedVal: 25
+  },
+  {
+    code: [24,25,26],
+    exp: `<code>isEmpty()</code> returns <code>top == -1</code>. <code>isFull()</code> returns <code>top == MAX-1</code>. Always check these before push/pop in production code to avoid stack overflow or underflow!`,
+    items: [10], top: 0
+  },
+  {
+    code: [7,8],
+    exp: `<strong>Stack overflow guard:</strong> <code>push()</code> checks <code>top == MAX-1</code>. If we push until top = 4 (all 5 slots filled), the next push is silently ignored. Some implementations return an error code instead.`,
+    items: [10, 20, 30, 40, 50], top: 4, fullHL: true
+  },
+  {
+    code: [13,14],
+    exp: `<strong>Stack underflow guard:</strong> <code>pop()</code> checks <code>top == -1</code>. Popping an empty stack returns -1 (sentinel). In real code you'd use a return value or <code>errno</code> to signal the error to the caller.`,
+    items: [], top: -1, emptyHL: true
+  },
+  {
+    code: [],
+    exp: `✅ <strong>Done!</strong> Key rules: <code>top = -1</code> → empty; <code>top = MAX-1</code> → full; push increments then writes; pop reads then decrements. Switch to <strong>Playground</strong> to experiment live, or check <strong>Cheatsheet</strong> for both array and linked-list implementations.`,
+    items: [], top: -1
+  },
+];
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let curStep  = 0;
+let curTab   = 'learn';
+
+// playground state
+const PG_MAX = 8;
+let pgItems  = [];   // bottom → top order
+let pgLog    = [];
+let pgImpl   = 'array'; // 'array' | 'linked'
+let quizState = [];
+
+// ══════════════════════════════════════════════
+// RENDER CODE PANEL
+// ══════════════════════════════════════════════
+function renderCode(hlLines) {
+  const el = document.getElementById('code-scroll');
+  el.innerHTML = CODE.map((line, i) => `
+    <div class="cline${(Array.isArray(hlLines) && hlLines.includes(i)) ? ' hl' : ''}" id="cln${i}">
+      <span class="lnum">${i+1}</span>
+      <span class="lcode">${line || '&nbsp;'}</span>
+    </div>`).join('');
+  if (Array.isArray(hlLines) && hlLines.length) {
+    const el2 = document.getElementById('cln' + hlLines[0]);
+    if (el2) el2.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ══════════════════════════════════════════════
+// RENDER STACK VISUAL
+// ══════════════════════════════════════════════
+function renderStack(items, top, maxSize, opts = {}) {
+  const scene = document.getElementById('stack-scene');
+  scene.innerHTML = '';
+
+  const col = document.createElement('div');
+  col.className = 'stack-col';
+
+  // open top label
+  const openDiv = document.createElement('div');
+  openDiv.className = 'stack-open';
+  openDiv.textContent = top === maxSize - 1 ? '▲  FULL' : '▲  open top';
+  openDiv.style.color = top === maxSize - 1 ? 'var(--red)' : 'var(--muted)';
+  col.appendChild(openDiv);
+
+  // walls container
+  const walls = document.createElement('div');
+  walls.className = 'stack-walls';
+  walls.style.minHeight = (maxSize * 52) + 'px';
+
+  if (items.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'stack-empty-msg';
+    emptyDiv.textContent = 'empty  (top = -1)';
+    walls.appendChild(emptyDiv);
+  } else {
+    // render from top to bottom visually (top item first in DOM = visually on top)
+    [...items].reverse().forEach((val, revIdx) => {
+      const logicalIdx = items.length - 1 - revIdx; // 0=bottom
+      const isTopItem = logicalIdx === top;
+
+      const blk = document.createElement('div');
+      blk.className = 'sblock' + (isTopItem ? ' is-top' : '') +
+        (opts.newTop && isTopItem ? ' push-in' : '') +
+        (opts.popHL  && isTopItem ? ' pop-out' : '');
+
+      const idxSpan = document.createElement('span');
+      idxSpan.className = 'sblock-index';
+      idxSpan.textContent = `[${logicalIdx}]`;
+
+      const valSpan = document.createElement('span');
+      valSpan.className = 'sblock-val';
+      valSpan.textContent = val;
+
+      const addrSpan = document.createElement('span');
+      addrSpan.className = 'sblock-addr';
+      addrSpan.textContent = '0x' + (0x2000 + logicalIdx * 4).toString(16).toUpperCase();
+
+      blk.appendChild(idxSpan);
+      blk.appendChild(valSpan);
+      blk.appendChild(addrSpan);
+      walls.appendChild(blk);
+    });
+  }
+
+  // TOP pointer: position it next to the top item
+  if (top >= 0 && items.length > 0) {
+    const ptrDiv = document.createElement('div');
+    ptrDiv.className = 'top-pointer';
+    // top item is at revIdx=0, each block is 52px, measured from top of walls
+    const topPx = (maxSize - 1 - top) * 52 + 18; // center vertically in block
+    ptrDiv.style.top = topPx + 'px';
+    ptrDiv.innerHTML = `
+      <div class="top-arrow-line"></div>
+      <div class="top-label">top = ${top}</div>`;
+    walls.appendChild(ptrDiv);
+  }
+
+  col.appendChild(walls);
+
+  // bottom label
+  const botLbl = document.createElement('div');
+  botLbl.className = 'stack-bottom-lbl';
+  botLbl.textContent = `stack[0..${maxSize-1}]  MAX=${maxSize}`;
+  col.appendChild(botLbl);
+
+  scene.appendChild(col);
+
+  // info cards
+  const info = document.createElement('div');
+  info.className = 'stack-info';
+
+  const topCard = makeInfoCard('top', top === -1 ? '-1 (empty)' : String(top), top === -1 ? '' : 'top-v');
+  const sizeCard = makeInfoCard('size', String(items.length), 'size-v');
+  const statusCard = makeInfoCard('status',
+    top === -1 ? 'EMPTY' : top === maxSize - 1 ? 'FULL' : 'OK',
+    top === -1 ? '' : top === maxSize - 1 ? 'full-v' : 'ok-v');
+  const peekCard = makeInfoCard('peek()',
+    items.length === 0 ? 'N/A' : String(items[top]),
+    items.length ? 'top-v' : '');
+
+  info.appendChild(topCard);
+  info.appendChild(sizeCard);
+  info.appendChild(statusCard);
+  info.appendChild(peekCard);
+  scene.appendChild(info);
+}
+
+function makeInfoCard(label, val, cls) {
+  const c = document.createElement('div');
+  c.className = 'info-card';
+  c.innerHTML = `<div class="info-label">${label}</div><div class="info-val ${cls}">${val}</div>`;
+  return c;
+}
+
+// ══════════════════════════════════════════════
+// LEARN STEP ENGINE
+// ══════════════════════════════════════════════
+function applyStep(i) {
+  const s = STEPS[i];
+  renderCode(s.code);
+  renderStack(s.items, s.top, MAX_LEARN, { newTop: s.newTop, popHL: s.popHL, peekHL: s.peekHL, fullHL: s.fullHL, emptyHL: s.emptyHL });
+
+  const et = document.getElementById('explain-txt');
+  et.innerHTML = s.exp;
+  et.classList.remove('slide-up'); void et.offsetWidth; et.classList.add('slide-up');
+
+  document.getElementById('btn-prev').disabled = i === 0;
+  document.getElementById('btn-next').disabled = i === STEPS.length - 1;
+  document.getElementById('step-lbl').textContent = `Step ${i} / ${STEPS.length - 1}`;
+
+  const dr = document.getElementById('dots-row');
+  dr.innerHTML = '';
+  STEPS.forEach((_, j) => {
+    const d = document.createElement('div');
+    d.className = 'sdot' + (j < i ? ' done' : j === i ? ' cur' : '');
+    dr.appendChild(d);
+  });
+}
+
+function nextStep() { if (curStep < STEPS.length - 1) { curStep++; applyStep(curStep); } }
+function prevStep() { if (curStep > 0) { curStep--; applyStep(curStep); } }
+function goReset()  { curStep = 0; applyStep(0); }
+
+// ══════════════════════════════════════════════
+// TAB SWITCH
+// ══════════════════════════════════════════════
+function switchTab(tab, btn) {
+  curTab = tab;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+
+  const vizEl  = document.getElementById('viz-area');
+  const expEl  = document.getElementById('explain-bar');
+  const ctrlEl = document.getElementById('ctrl-bar');
+  const sideEl = document.getElementById('sidebar');
+  const tcEl   = document.getElementById('tab-content');
+
+  const isLearn = tab === 'learn';
+  const showViz = isLearn || tab === 'play' || tab === 'mem';
+
+  vizEl.style.display   = showViz ? '' : 'none';
+  vizEl.classList.toggle('compact', showViz && !isLearn);
+  expEl.style.display   = isLearn ? '' : 'none';
+  ctrlEl.style.display  = isLearn ? '' : 'none';
+  sideEl.style.display  = isLearn ? '' : 'none';
+  tcEl.style.display    = isLearn ? 'none' : 'flex';
+  tcEl.style.flexDirection = 'column';
+
+  if      (isLearn)      { applyStep(curStep); }
+  else if (tab === 'play')  { buildPlayground(); renderPgStack(); }
+  else if (tab === 'mem')   { buildMemTab();    renderPgStack(); }
+  else if (tab === 'cheat') { buildCheat(); }
+  else if (tab === 'quiz')  { buildQuiz(); }
+}
+
+// ══════════════════════════════════════════════
+// PLAYGROUND
+// ══════════════════════════════════════════════
+function renderPgStack() {
+  renderStack(pgItems, pgItems.length - 1, PG_MAX, {});
+}
+
+function pgPush(val) {
+  if (isNaN(val)) return pgAddLog('Invalid value', 'lerr');
+  if (pgItems.length >= PG_MAX) return pgAddLog(`Stack OVERFLOW — max size ${PG_MAX} reached`, 'lerr');
+  pgItems.push(val);
+  pgAddLog(`push(${val}) — top = ${pgItems.length - 1}, stack[${pgItems.length - 1}] = ${val}`, 'lok');
+  renderPgStack();
+  if (curTab === 'mem') buildMemTab();
+}
+
+function pgPop() {
+  if (pgItems.length === 0) return pgAddLog('Stack UNDERFLOW — cannot pop empty stack', 'lerr');
+  const val = pgItems.pop();
+  pgAddLog(`pop() → ${val}  (top now = ${pgItems.length - 1})`, 'lok');
+  renderPgStack();
+  if (curTab === 'mem') buildMemTab();
+}
+
+function pgPeek() {
+  if (pgItems.length === 0) return pgAddLog('peek() → stack is empty', 'lwrn');
+  pgAddLog(`peek() → ${pgItems[pgItems.length - 1]}  (top = ${pgItems.length - 1}, no change)`, 'linf');
+}
+
+function pgClear() {
+  pgItems = [];
+  pgAddLog('clear() — stack emptied, top = -1', 'lok');
+  renderPgStack();
+  if (curTab === 'mem') buildMemTab();
+}
+
+function pgAddLog(msg, cls) {
+  const ts = new Date().toTimeString().slice(0, 8);
+  pgLog.unshift({ ts, msg, cls });
+  if (pgLog.length > 40) pgLog.pop();
+  const el = document.getElementById('pg-log');
+  if (el) el.innerHTML = pgLog.map(l =>
+    `<div class="ll"><span class="lt">${l.ts}</span><span class="${l.cls}">${l.msg}</span></div>`
+  ).join('');
+}
+
+function buildPlayground() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="pg-wrap">
+
+    <div>
+      <div class="sec-lbl">Operations</div>
+      <div class="pg-row">
+        <input class="pg-in" id="pg-val" type="number" placeholder="value">
+        <button class="btn prime" onclick="pgPush(parseInt(document.getElementById('pg-val').value))">⬆ Push</button>
+        <button class="btn dng"   onclick="pgPop()">⬇ Pop</button>
+        <button class="btn"       onclick="pgPeek()">👁 Peek</button>
+        <button class="btn dng"   onclick="pgClear()">🗑 Clear</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-lbl">Real-world demo — use stack to reverse a sequence</div>
+      <div class="pg-row">
+        <button class="btn" onclick="pgDemoReverse()">▶ Push 1,2,3,4,5 then pop all</button>
+        <button class="btn" onclick="pgDemoParens()">▶ Check balanced brackets: (()[])</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-lbl">Log</div>
+      <div class="pg-log" id="pg-log">
+        <div class="ll"><span class="lt">--:--:--</span><span class="linf">Playground ready — MAX = ${PG_MAX} slots</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:12px 14px;">
+      <div class="sec-lbl" style="margin-bottom:8px">Stack invariants</div>
+      <div style="font-family:var(--mono);font-size:0.74rem;line-height:1.9;color:var(--dim)">
+        <span style="color:var(--green)">isEmpty()</span> &nbsp;→ top == -1<br>
+        <span style="color:var(--red)">isFull()</span> &nbsp;&nbsp;→ top == MAX-1<br>
+        <span style="color:var(--orange)">peek()</span> &nbsp;&nbsp;&nbsp;→ stack[top] &nbsp;(no side effects)<br>
+        <span style="color:var(--blue)">push(v)</span> &nbsp;&nbsp;→ stack[++top] = v &nbsp;(pre-increment!)<br>
+        <span style="color:var(--blue)">pop()</span> &nbsp;&nbsp;&nbsp;&nbsp;→ return stack[top--] &nbsp;(post-decrement!)
+      </div>
+    </div>
+
+  </div>`;
+  document.getElementById('pg-val').addEventListener('keydown', e => {
+    if (e.key === 'Enter') pgPush(parseInt(e.target.value));
+  });
+}
+
+function pgDemoReverse() {
+  pgClear();
+  const vals = [1,2,3,4,5];
+  pgAddLog(`--- Demo: Reverse [1,2,3,4,5] using a stack ---`, 'linf');
+  vals.forEach(v => pgPush(v));
+  renderPgStack();
+  setTimeout(() => {
+    const result = [];
+    pgAddLog(`--- Now popping all ---`, 'linf');
+    while (pgItems.length > 0) {
+      const v = pgItems.pop();
+      result.push(v);
+    }
+    pgAddLog(`Result: [${result.join(', ')}] — reversed!`, 'lok');
+    renderPgStack();
+    if (curTab === 'mem') buildMemTab();
+  }, 600);
+}
+
+function pgDemoParens() {
+  pgClear();
+  const expr = '(()[])';
+  pgAddLog(`--- Check balanced brackets in: ${expr} ---`, 'linf');
+  let balanced = true;
+  const opens = new Set(['(','[','{']);
+  const match = { ')':'(', ']':'[', '}':'{' };
+  const tempStack = [];
+  for (const ch of expr) {
+    if (opens.has(ch)) {
+      tempStack.push(ch);
+      pgAddLog(`push('${ch}') → stack depth ${tempStack.length}`, 'lok');
+    } else if (match[ch]) {
+      if (!tempStack.length || tempStack[tempStack.length-1] !== match[ch]) {
+        balanced = false; break;
+      }
+      pgAddLog(`pop '${tempStack.pop()}' matches '${ch}' ✓`, 'lok');
+    }
+  }
+  pgAddLog(balanced && tempStack.length === 0
+    ? `Result: BALANCED ✓ — stack empty at end`
+    : `Result: NOT balanced ✗`, balanced && tempStack.length === 0 ? 'lok' : 'lerr');
+}
+
+// ══════════════════════════════════════════════
+// MEMORY TAB
+// ══════════════════════════════════════════════
+function buildMemTab() {
+  const tc = document.getElementById('tab-content');
+  const top = pgItems.length - 1;
+
+  const rows = Array.from({ length: PG_MAX }, (_, i) => {
+    const hasVal = i <= top;
+    const isTopSlot = i === top;
+    const val = hasVal ? pgItems[i] : '—';
+    const addr = '0x' + (0x2000 + i * 4).toString(16).toUpperCase();
+    return `<tr class="${isTopSlot ? 'top-row' : ''}">
+      <td class="c-idx">[${i}]</td>
+      <td class="c-addr">${addr}</td>
+      <td class="c-val" style="${hasVal ? '' : 'color:var(--muted)'}">
+        ${val}${isTopSlot ? ' <span style="color:var(--orange)">← TOP</span>' : ''}
+      </td>
+      <td class="c-top">${isTopSlot ? `top = ${top}` : ''}</td>
+      <td class="c-note">${i === 0 ? 'stack[0] = base' : hasVal ? 'active' : 'stale / unused'}</td>
+    </tr>`;
+  }).join('');
+
+  tc.innerHTML = `<div class="mem-wrap">
+    <p style="font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-bottom:12px;">
+      Array-based stack — <code style="color:var(--orange)">top = ${top}</code> &nbsp;|&nbsp;
+      Size: ${pgItems.length} / ${PG_MAX} &nbsp;|&nbsp;
+      ${pgItems.length === 0 ? '<span style="color:var(--red)">EMPTY</span>' : pgItems.length === PG_MAX ? '<span style="color:var(--red)">FULL</span>' : '<span style="color:var(--green)">OK</span>'}
+    </p>
+    <table class="mtbl">
+      <thead><tr>
+        <th>Index</th><th>Address</th><th>Value</th><th>top ptr</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-top:12px;line-height:1.7">
+      ⚠ Values at indices ${top+1}..${PG_MAX-1} may contain <em>stale data</em> from previous pops.<br>
+      They're ignored because <code style="color:var(--orange)">top</code> doesn't point to them — this is why stack underflow is dangerous if you don't check.
+    </p>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// CHEATSHEET
+// ══════════════════════════════════════════════
+function buildCheat() {
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="cheat-wrap">
+
+  <div class="cblk">
+    <div class="cblk-hdr">Array-based Stack (fixed size)</div>
+    <div class="cblk-code"><span class="kw">#define</span> <span class="nu">MAX</span> <span class="nu">100</span>
+<span class="ty">int</span> <span class="va">stack</span><span class="op">[</span><span class="nu">MAX</span><span class="op">];</span>
+<span class="ty">int</span> <span class="pt">top</span> <span class="op">=</span> <span class="nu">-1</span><span class="op">;</span>
+
+<span class="kw">void</span>  <span class="fn">push</span><span class="op">(</span><span class="ty">int</span> <span class="va">v</span><span class="op">)</span> { <span class="kw">if</span><span class="op">(!</span><span class="fn">isFull</span><span class="op">())</span>  <span class="va">stack</span><span class="op">[++</span><span class="pt">top</span><span class="op">]</span> <span class="op">=</span> <span class="va">v</span><span class="op">;</span>  }
+<span class="ty">int</span>   <span class="fn">pop</span><span class="op">()</span>    { <span class="kw">return</span> <span class="fn">isEmpty</span><span class="op">()</span> <span class="op">?</span> <span class="nu">-1</span> <span class="op">:</span> <span class="va">stack</span><span class="op">[</span><span class="pt">top</span><span class="op">--];</span>  }
+<span class="ty">int</span>   <span class="fn">peek</span><span class="op">()</span>   { <span class="kw">return</span> <span class="fn">isEmpty</span><span class="op">()</span> <span class="op">?</span> <span class="nu">-1</span> <span class="op">:</span> <span class="va">stack</span><span class="op">[</span><span class="pt">top</span><span class="op">];</span>    }
+<span class="ty">int</span>   <span class="fn">isEmpty</span><span class="op">()</span>{ <span class="kw">return</span> <span class="pt">top</span> <span class="op">==</span> <span class="nu">-1</span><span class="op">;</span>                  }
+<span class="ty">int</span>   <span class="fn">isFull</span><span class="op">()</span> { <span class="kw">return</span> <span class="pt">top</span> <span class="op">==</span> <span class="nu">MAX</span><span class="op">-</span><span class="nu">1</span><span class="op">;</span>               }</div>
+  </div>
+
+  <div class="cblk">
+    <div class="cblk-hdr">Linked-list Stack (dynamic size, no overflow)</div>
+    <div class="cblk-code"><span class="kw">typedef</span> <span class="kw">struct</span> <span class="ty">Node</span> {
+  <span class="ty">int</span>         <span class="va">data</span><span class="op">;</span>
+  <span class="kw">struct</span> <span class="ty">Node</span> <span class="pt">*next</span><span class="op">;</span>
+} <span class="ty">Node</span><span class="op">;</span>
+
+<span class="ty">Node</span> <span class="pt">*top</span> <span class="op">=</span> <span class="nu">NULL</span><span class="op">;</span>   <span class="cm">// head of list = top of stack</span>
+
+<span class="kw">void</span> <span class="fn">push</span><span class="op">(</span><span class="ty">int</span> <span class="va">v</span><span class="op">)</span> {
+  <span class="ty">Node</span> <span class="pt">*n</span> <span class="op">=</span> <span class="fn">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="ty">Node</span><span class="op">));</span>
+  <span class="va">n</span><span class="ar">-></span><span class="va">data</span> <span class="op">=</span> <span class="va">v</span><span class="op">;</span>  <span class="va">n</span><span class="ar">-></span><span class="pt">next</span> <span class="op">=</span> <span class="pt">top</span><span class="op">;</span>  <span class="pt">top</span> <span class="op">=</span> <span class="va">n</span><span class="op">;</span>
+}
+<span class="ty">int</span> <span class="fn">pop</span><span class="op">()</span> {
+  <span class="kw">if</span> <span class="op">(!</span><span class="pt">top</span><span class="op">)</span> <span class="kw">return</span> <span class="nu">-1</span><span class="op">;</span>
+  <span class="ty">Node</span> <span class="pt">*tmp</span> <span class="op">=</span> <span class="pt">top</span><span class="op">;</span>  <span class="ty">int</span> <span class="va">v</span> <span class="op">=</span> <span class="va">tmp</span><span class="ar">-></span><span class="va">data</span><span class="op">;</span>
+  <span class="pt">top</span> <span class="op">=</span> <span class="pt">top</span><span class="ar">-></span><span class="pt">next</span><span class="op">;</span>  <span class="fn">free</span><span class="op">(</span><span class="va">tmp</span><span class="op">);</span>  <span class="kw">return</span> <span class="va">v</span><span class="op">;</span>
+}
+<span class="ty">int</span>  <span class="fn">peek</span><span class="op">()</span>    { <span class="kw">return</span> <span class="pt">top</span> <span class="op">?</span> <span class="pt">top</span><span class="ar">-></span><span class="va">data</span> <span class="op">:</span> <span class="nu">-1</span><span class="op">;</span> }
+<span class="ty">int</span>  <span class="fn">isEmpty</span><span class="op">()</span> { <span class="kw">return</span> <span class="pt">top</span> <span class="op">==</span> <span class="nu">NULL</span><span class="op">;</span> }</div>
+  </div>
+
+  <div class="cblk">
+    <div class="cblk-hdr">Classic use-cases</div>
+    <div class="cblk-code"><span class="cm">// 1. Reverse an array</span>
+<span class="kw">for</span><span class="op">(</span><span class="ty">int</span> <span class="va">i</span><span class="op">=</span><span class="nu">0</span><span class="op">;</span> <span class="va">i</span><span class="op">&lt;</span><span class="va">n</span><span class="op">;</span> <span class="va">i</span><span class="op">++)</span> <span class="fn">push</span><span class="op">(</span><span class="va">arr</span><span class="op">[</span><span class="va">i</span><span class="op">]);</span>
+<span class="kw">for</span><span class="op">(</span><span class="ty">int</span> <span class="va">i</span><span class="op">=</span><span class="nu">0</span><span class="op">;</span> <span class="va">i</span><span class="op">&lt;</span><span class="va">n</span><span class="op">;</span> <span class="va">i</span><span class="op">++)</span> <span class="va">arr</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">=</span> <span class="fn">pop</span><span class="op">();</span>
+
+<span class="cm">// 2. Balanced brackets check</span>
+<span class="kw">for</span> <span class="op">(</span><span class="ty">char</span> <span class="va">c</span> <span class="op">:</span> <span class="va">expr</span><span class="op">)</span> {
+  <span class="kw">if</span> <span class="op">(</span><span class="va">c</span> <span class="op">==</span> <span class="st">'('</span><span class="op">)</span> <span class="fn">push</span><span class="op">(</span><span class="va">c</span><span class="op">);</span>
+  <span class="kw">if</span> <span class="op">(</span><span class="va">c</span> <span class="op">==</span> <span class="st">')'</span><span class="op">)</span> { <span class="kw">if</span> <span class="op">(</span><span class="fn">isEmpty</span><span class="op">())</span> <span class="kw">return</span> <span class="nu">0</span><span class="op">;</span> <span class="fn">pop</span><span class="op">();</span> }
+}
+<span class="kw">return</span> <span class="fn">isEmpty</span><span class="op">();</span>   <span class="cm">// balanced iff stack empty</span>
+
+<span class="cm">// 3. Undo/redo — push states on push, pop on undo</span>
+<span class="cm">// 4. Function call stack — CPU uses a hardware stack</span>
+<span class="cm">// 5. DFS (depth-first search) — push unvisited neighbors</span></div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+    <div class="sec-lbl" style="margin-bottom:10px">Array vs Linked-list Stack</div>
+    <table class="mtbl" style="font-size:.73rem;">
+      <thead><tr><th>Aspect</th><th>Array Stack</th><th>LL Stack</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--dim)">Max size</td><td style="color:var(--yellow)">Fixed (MAX)</td><td style="color:var(--green)">Dynamic</td></tr>
+        <tr><td style="color:var(--dim)">Overflow possible</td><td style="color:var(--red)">Yes</td><td style="color:var(--green)">No (until RAM full)</td></tr>
+        <tr><td style="color:var(--dim)">push / pop</td><td style="color:var(--green)">O(1)</td><td style="color:var(--green)">O(1)</td></tr>
+        <tr><td style="color:var(--dim)">Memory locality</td><td style="color:var(--green)">Excellent (contiguous)</td><td style="color:var(--yellow)">Poor (scattered heap)</td></tr>
+        <tr><td style="color:var(--dim)">malloc overhead</td><td style="color:var(--green)">None</td><td style="color:var(--red)">Every push</td></tr>
+        <tr><td style="color:var(--dim)">Code complexity</td><td style="color:var(--green)">Simpler</td><td style="color:var(--yellow)">More complex</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// QUIZ
+// ══════════════════════════════════════════════
+const QUIZ = [
+  {
+    q: 'What does LIFO stand for, and what does it mean for a stack?',
+    opts: [
+      'Last-In First-Out — the most recently pushed item is the first to be popped',
+      'Linear-Index Fixed-Order — items are accessed by index',
+      'Last-Index First-Out — the last index is popped first',
+      'Linked-Items Fixed-Order — items are linked together'
+    ],
+    ans: 0,
+    exp: 'LIFO = Last-In First-Out. Whatever you pushed most recently is what you get when you pop. Like a stack of plates — top plate goes on last, comes off first.'
+  },
+  {
+    q: 'What is the value of `top` when an array-based stack is empty?',
+    opts: ['0', '1', '-1', 'NULL'],
+    ans: 2,
+    exp: 'top = -1 is the conventional sentinel for "empty". Since valid indices start at 0, -1 is safely out of range and unambiguous.'
+  },
+  {
+    q: 'What does `stack[++top] = val` do differently from `stack[top++] = val`?',
+    opts: [
+      'They are identical',
+      '++top increments first then writes (correct push); top++ writes then increments (overwrites current top)',
+      '++top is only for pop, top++ is for push',
+      'top++ is faster'
+    ],
+    ans: 1,
+    exp: '++top (pre-increment) increments top BEFORE indexing — so you write to the new slot. top++ (post-increment) would write to the OLD top slot first, overwriting the existing value.'
+  },
+  {
+    q: 'Why is accessing stack[top] after top = -1 dangerous?',
+    opts: [
+      'It returns 0 safely',
+      'It causes a compile error',
+      'stack[-1] is out of bounds — undefined behavior, possible segfault or wrong data',
+      'It automatically resizes the array'
+    ],
+    ans: 2,
+    exp: 'Array index -1 is out of bounds in C. There\'s no automatic check — you\'re reading memory before the array start. Always check isEmpty() before calling pop() or peek().'
+  },
+  {
+    q: 'In a linked-list stack, which end of the list acts as the top of the stack?',
+    opts: [
+      'The tail (last node)',
+      'The middle node',
+      'The head (first node)',
+      'A separate pointer tracks it independently'
+    ],
+    ans: 2,
+    exp: 'The head is the top of the stack. push() prepends a new head node (O(1)), pop() removes the head node (O(1)). Appending to the tail would require O(n) traversal for pop.'
+  },
+  {
+    q: 'Which of these is NOT a common use-case for a stack?',
+    opts: [
+      'Undo/redo in a text editor',
+      'Balanced bracket checking',
+      'BFS (Breadth-First Search) traversal',
+      'Function call management (call stack)'
+    ],
+    ans: 2,
+    exp: 'BFS uses a queue (FIFO), not a stack. DFS uses a stack. Undo/redo, bracket matching, and the CPU call stack are all classic stack applications.'
+  },
+  {
+    q: 'What is the time complexity of push() and pop() for both array and linked-list stacks?',
+    opts: ['O(n) for both', 'O(log n)', 'O(1) for both', 'O(1) array, O(n) linked-list'],
+    ans: 2,
+    exp: 'Both are O(1) — array push/pop just moves an integer index; linked-list push/pop just updates the head pointer. No traversal needed in either case.'
+  },
+];
+
+function buildQuiz() {
+  if (!quizState.length) quizState = new Array(QUIZ.length).fill(null);
+  const tc = document.getElementById('tab-content');
+  tc.innerHTML = `<div class="quiz-wrap">
+    ${QUIZ.map((q, qi) => `
+      <div class="qcard">
+        <h4><span style="color:var(--orange)">Q${qi+1}.</span> ${q.q.replace(/\n/g,'<br><br>')}</h4>
+        <div class="qopts">
+          ${q.opts.map((opt, oi) => `
+            <button class="qopt" id="qo${qi}_${oi}" onclick="answerQ(${qi},${oi})">${['A','B','C','D'][oi]}. ${opt}</button>
+          `).join('')}
+        </div>
+        <div class="qfb" id="qfb${qi}"></div>
+      </div>`).join('')}
+    <div style="display:flex;gap:12px;align-items:center;padding-bottom:8px;">
+      <button class="btn" onclick="resetQuiz()">↺ Restart Quiz</button>
+      <span id="qscore" style="font-family:var(--mono);font-size:.78rem;color:var(--muted)"></span>
+    </div>
+  </div>`;
+  quizState.forEach((ans, qi) => { if (ans !== null) applyQAns(qi, ans); });
+}
+
+function answerQ(qi, oi) {
+  if (quizState[qi] !== null) return;
+  quizState[qi] = oi; applyQAns(qi, oi); updateQScore();
+}
+function applyQAns(qi, oi) {
+  const q = QUIZ[qi];
+  document.querySelectorAll(`[id^="qo${qi}_"]`).forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.ans) btn.classList.add('ok');
+    else if (i === oi) btn.classList.add('bad');
+  });
+  const fb = document.getElementById('qfb' + qi);
+  if (!fb) return;
+  fb.textContent = (oi === q.ans ? '✓ Correct! ' : '✗ Wrong. ') + q.exp;
+  fb.className = 'qfb show ' + (oi === q.ans ? 'pass' : 'fail');
+}
+function updateQScore() {
+  const answered = quizState.filter(a => a !== null).length;
+  const correct  = quizState.filter((a, i) => a === QUIZ[i].ans).length;
+  const el = document.getElementById('qscore');
+  if (el && answered === QUIZ.length) {
+    el.textContent = `Score: ${correct} / ${QUIZ.length}`;
+    el.style.color = correct >= 5 ? 'var(--green)' : 'var(--red)';
+  }
+}
+function resetQuiz() { quizState = new Array(QUIZ.length).fill(null); buildQuiz(); }
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+pgItems = [7, 23, 41];
+pgAddLog('Demo stack initialized: [7, 23, 41]  (41 is on top)', 'linf');
+
+renderCode([]);
+applyStep(0);
+</script>
+</body>
+</html>
