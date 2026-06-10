@@ -49,7 +49,13 @@ int main() {
 
 
     /* (C4) Lengkapi kondisi if-else sesuai pseudocode */
-    
+    if(nilai >= 60) {
+        // kalau lulus, print apa
+
+    } else {
+        // jika tidak lulus, print apa
+        
+    }
 
     return 0;
 }

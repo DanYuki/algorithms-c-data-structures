@@ -4,15 +4,12 @@
  * Nama    : ___________________________
  * Tanggal : ___________________________
  *
- * Petunjuk:
- *   - Isi semua bagian bertanda ____ (garis bawah empat)
- *   - Komentar di samping setiap ____ memberikan petunjuk
- *   - File ini belum bisa di-compile sebelum semua ____ diisi
+ * Deskripsi:
+ *   Program membaca 5 bilangan dari pengguna ke dalam sebuah array,
+ *   lalu menampilkan total, rata-rata, nilai terbesar, dan nilai terkecil.
  *
- * Compile : gcc 03_Task_A1.c -o 03_Task_A1 -Wall
- * Jalankan: ./03_Task_A1  (Linux/Mac)  atau  03_Task_A1.exe  (Windows)
- *
- * Expected Output (contoh):
+ * Contoh input  : 70  85  60  92  78
+ * Expected Output:
  *   Masukkan 5 nilai:
  *     nilai[0] = 70
  *     nilai[1] = 85
@@ -24,6 +21,9 @@
  *   Rata-rata: 77.0
  *   Terbesar : 92
  *   Terkecil : 60
+ *
+ * Compile : gcc 03_Task_A1.c -o 03_Task_A1 -Wall
+ * Jalankan: ./03_Task_A1  (Linux/Mac)  |  03_Task_A1.exe  (Windows)
  */
 
 #include <stdio.h>
@@ -35,32 +35,29 @@ int main() {
     int terbesar;
     int terkecil;
 
-    printf("=== Bagian A: Statistik Array 1D ===\n");
     printf("Masukkan 5 nilai:\n");
 
-    /* (A1) Loop untuk membaca input ke setiap elemen array */
-    for (i = 0; ____ ; ____) {            /* batas: i < 5 | naik: i++ */
-        printf("  nilai[%d] = ", i);
-        scanf("%d", ____);                 /* (A2) alamat elemen ke-i: &nilai[i] */
-    }
+    /* TODO 1: Baca 5 bilangan dari pengguna, simpan ke dalam array nilai[].
+     *   Hint: gunakan for loop (i dari 0 sampai i < 5).
+     *         Di tiap iterasi: printf prompt "  nilai[%d] = " lalu scanf ke &nilai[i].
+     */
+    /* Tulis kodemu di sini */
 
-    terbesar = ____;   /* (A3) inisialisasi dari elemen pertama: nilai[0] */
-    terkecil = ____;   /* (A4) inisialisasi dari elemen pertama: nilai[0] */
+    /* TODO 2: Inisialisasi terbesar dan terkecil menggunakan elemen pertama array.
+     *   Hint: pakai nilai[0] sebagai titik awal — bukan angka seperti 0 atau 999.
+     */
+    /* Tulis kodemu di sini */
 
-    /* (A5) Loop untuk menghitung total, terbesar, dan terkecil */
-    for (i = 0; i < 5; i++) {
-        total = total + ____;              /* (A6) tambahkan elemen ke-i: nilai[i] */
-
-        if (____ > terbesar) {             /* (A7) bandingkan elemen ke-i dengan terbesar */
-            terbesar = nilai[i];
-        }
-        if (____ < terkecil) {             /* (A8) bandingkan elemen ke-i dengan terkecil */
-            terkecil = nilai[i];
-        }
-    }
+    /* TODO 3: Dalam satu for loop, hitung total dan perbarui terbesar serta terkecil.
+     *   Hint: untuk setiap nilai[i] —
+     *         tambahkan ke total;
+     *         jika nilai[i] lebih besar dari terbesar, perbarui terbesar;
+     *         jika nilai[i] lebih kecil dari terkecil, perbarui terkecil.
+     */
+    /* Tulis kodemu di sini */
 
     printf("\nTotal    : %d\n", total);
-    printf("Rata-rata: %.1f\n", (float)total / ____); /* (A9) bagi dengan jumlah elemen: 5 */
+    printf("Rata-rata: %.1f\n", (float)total / 5);
     printf("Terbesar : %d\n", terbesar);
     printf("Terkecil : %d\n", terkecil);
 

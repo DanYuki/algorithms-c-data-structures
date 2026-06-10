@@ -46,6 +46,8 @@
 |-------------|-------------------|
 | Lupa titik koma (`;`) di akhir statement | Tunjukkan pesan error dari GCC, minta mereka baca pesan error sendiri. Biasakan baca error message dari awal. |
 | Bingung kapan pakai `%d` vs `%f` | Gunakan analogi: format specifier seperti "label kotak" — `%d` untuk kotak integer, `%f` untuk kotak desimal. |
+| Mengira `7 / 2` menghasilkan `3.5` | Demo langsung di terminal: `int` dibagi `int` membuang desimal. Tunjukkan perbaikannya dengan `7.0 / 2`. Hubungkan ke contoh konversi suhu (kalau pakai `9/5` hasil salah). |
+| Mengira `%` adalah persen | Jelaskan `%` di C adalah **sisa bagi (modulo)**, bukan persentase. Contoh: `10 % 3 = 1`. |
 | Bingung dengan `&` di `scanf` | Cukup bilang: *"scanf butuh 'alamat' bukan 'isinya' — ini akan kita pelajari lebih dalam di bab pointer."* Jangan jelaskan terlalu dalam di P1. |
 | Menyamakan pseudocode dengan komentar kode | Tekankan: pseudocode ditulis **sebelum** kode, bukan sesudah. Tujuannya berbeda. |
 | Mengira AI bisa menggantikan proses belajar | Ceritakan analogi: AI seperti kalkulator — sangat berguna, tapi kamu tetap harus mengerti matematika dasarnya. |
@@ -65,9 +67,10 @@
 | 0–15 | **Pembukaan** | Kenapa C? Peta 16 pertemuan. Konsep AI-Augmented Developer. Jaga energi tinggi — kesan pertama penting. |
 | 15–40 | **Setup Environment** | Bantu siswa yang stuck satu per satu. Jangan lanjut sampai mayoritas berhasil kompilasi Hello World. |
 | 40–60 | **Anatomi Program C** | Bedah setiap baris `hello.c`. Tekankan: `#include`, `main`, titik koma, `return 0`. |
-| 60–75 | **Tipe Data & Kompilasi** | Demo `scanf` + `printf` dengan beberapa tipe data. Tunjukkan alur kompilasi di terminal. |
-| 75–100 | **Problem Solving** | **Ini segmen terpenting.** Gambar flowchart → tulis pseudocode → tulis kode C. Gunakan soal Ganjil/Genap. Minta siswa ikut menulis di kertas/editor mereka. |
-| 100–115 | **Prompt Engineering** | Demo langsung di ChatGPT/Claude. Tampilkan perbedaan output dari prompt buruk vs baik. |
+| 60–72 | **Tipe Data & Kompilasi** | Demo `scanf` + `printf` dengan beberapa tipe data. Tunjukkan alur kompilasi di terminal. |
+| 72–85 | **Operasi Aritmatika** | Demo `+ - * / %`. **Tekankan jebakan `int / int`** (`7/2` = 3) lalu perbaiki dengan `7.0/2`. Perkenalkan `%` (modulo) di sini — jadikan jembatan ke soal Ganjil/Genap. Tutup dengan contoh konversi suhu. |
+| 85–105 | **Problem Solving** | **Ini segmen terpenting.** Gambar flowchart → tulis pseudocode → tulis kode C. Gunakan soal Ganjil/Genap (siswa sudah kenal `%` dari segmen sebelumnya). Minta siswa ikut menulis di kertas/editor mereka. |
+| 105–115 | **Prompt Engineering** | Demo langsung di ChatGPT/Claude. Tampilkan perbedaan output dari prompt buruk vs baik. |
 | 115–120 | **Penutup & Tugas** | Rekap singkat 3 poin utama. Bagikan `01_Task.c` dan `01_Optional_Task.md`. Preview P2. |
 
 ---

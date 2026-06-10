@@ -1,40 +1,43 @@
 /*
- * Pertemuan 3 — Task B3: String — strcat & Gabungkan String
+ * Pertemuan 3 — Task B3: String — strcat & Bangun Pesan
  * Topik   : Array & String
  * Nama    : ___________________________
  * Tanggal : ___________________________
  *
- * Petunjuk:
- *   - Isi semua bagian bertanda ____ (garis bawah empat)
- *   - Mulai dari (0): isi nama header yang dibutuhkan
- *   - File ini belum bisa di-compile sebelum semua ____ diisi
+ * Deskripsi:
+ *   Program meminta nama pengguna, lalu membangun kalimat sapaan
+ *   dengan menggabungkan beberapa string menggunakan strcat.
+ *   Hasil akhir: "Selamat datang, <nama>!"
  *
- * Compile : gcc 03_Task_B3.c -o 03_Task_B3 -Wall
- * Jalankan: ./03_Task_B3  (Linux/Mac)  atau  03_Task_B3.exe  (Windows)
- *
- * Expected Output (contoh input: Rina):
+ * Contoh input: Rina
+ * Expected Output:
  *   Masukkan nama kamu: Rina
  *   Pesan: Selamat datang, Rina!
+ *
+ * Compile : gcc 03_Task_B3.c -o 03_Task_B3 -Wall
+ * Jalankan: ./03_Task_B3  (Linux/Mac)  |  03_Task_B3.exe  (Windows)
  */
 
 #include <stdio.h>
-#include <____.h>   /* (0) header untuk fungsi strcat */
+#include <string.h>
 
 int main() {
     char nama[30];
-    char pesan[60] = "Selamat datang, ";  /* buffer cukup besar untuk hasil gabungan */
+    char pesan[60] = "Selamat datang, ";   /* buffer cukup besar untuk hasil gabungan */
     char penutup[] = "!";
 
-    printf("=== Task B3: strcat ===\n");
     printf("Masukkan nama kamu: ");
     scanf("%s", nama);
 
-    /* (C1) Gabungkan nama ke pesan menggunakan strcat.
-     *      strcat(tujuan, sumber) menambahkan sumber ke ujung tujuan. */
-    ____(pesan, ____);   /* (C1) nama fungsi | string yang ditambahkan */
+    /* TODO 1: Gabungkan nama ke ujung pesan menggunakan strcat.
+     *   Hint: strcat(tujuan, sumber) menambahkan sumber ke akhir tujuan.
+     *         Pastikan buffer tujuan cukup besar untuk menampung hasil gabungan.
+     */
+    /* Tulis kodemu di sini */
 
-    /* (C2) Gabungkan penutup ("!") ke pesan */
-    ____(pesan, ____);   /* (C2) nama fungsi | string penutup */
+    /* TODO 2: Gabungkan penutup ("!") ke ujung pesan.
+     */
+    /* Tulis kodemu di sini */
 
     printf("Pesan: %s\n", pesan);
 

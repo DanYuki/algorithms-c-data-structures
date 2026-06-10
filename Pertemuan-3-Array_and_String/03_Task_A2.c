@@ -4,48 +4,49 @@
  * Nama    : ___________________________
  * Tanggal : ___________________________
  *
- * Petunjuk:
- *   - Isi semua bagian bertanda ____ (garis bawah empat)
- *   - Komentar di samping setiap ____ memberikan petunjuk
- *   - File ini belum bisa di-compile sebelum semua ____ diisi
- *
- * Compile : gcc 03_Task_A2.c -o 03_Task_A2 -Wall
- * Jalankan: ./03_Task_A2  (Linux/Mac)  atau  03_Task_A2.exe  (Windows)
+ * Deskripsi:
+ *   Array dengan 5 nilai sudah tersedia.
+ *   Program meminta pengguna memasukkan sebuah nilai, lalu mencarinya di dalam array.
+ *   Jika ditemukan, cetak indeksnya; jika tidak, cetak pesan "Tidak ditemukan."
  *
  * Expected Output (mencari 85):
+ *   Array: {70, 85, 60, 92, 78}
  *   Cari nilai: 85
  *   Ditemukan di indeks 1.
  *
  * Expected Output (mencari 99):
+ *   Array: {70, 85, 60, 92, 78}
  *   Cari nilai: 99
  *   Tidak ditemukan.
+ *
+ * Compile : gcc 03_Task_A2.c -o 03_Task_A2 -Wall
+ * Jalankan: ./03_Task_A2  (Linux/Mac)  |  03_Task_A2.exe  (Windows)
  */
 
 #include <stdio.h>
 
 int main() {
-    int nilai[5] = {70, 85, 60, 92, 78};  /* data tetap untuk latihan */
+    int nilai[5] = {70, 85, 60, 92, 78};
     int i;
     int cari;
-    int ditemukan = 0;   /* flag: 0 = belum ditemukan */
+    int ditemukan = 0;   /* flag: 0 = belum ditemukan, 1 = sudah */
 
-    printf("=== Bagian B: Pencarian di Array ===\n");
+    printf("Array: {70, 85, 60, 92, 78}\n");
     printf("Cari nilai: ");
     scanf("%d", &cari);
 
-    /* (B1) Loop untuk mencari nilai di array */
-    for (i = 0; i < ____; i++) {          /* (B1) batas atas: jumlah elemen array */
-        if (nilai[i] == ____) {            /* (B2) bandingkan elemen ke-i dengan nilai yang dicari */
-            printf("Ditemukan di indeks %d.\n", i);
-            ditemukan = 1;
-            break;   /* berhenti setelah ditemukan */
-        }
-    }
+    /* TODO 1: Telusuri setiap elemen array nilai[] dari indeks 0 sampai 4.
+     *   Jika nilai[i] sama dengan cari:
+     *     - cetak "Ditemukan di indeks %d."
+     *     - set ditemukan = 1
+     *     - hentikan loop dengan break (tidak perlu lanjut mencari)
+     */
+    /* Tulis kodemu di sini */
 
-    /* (B3) Tampilkan pesan jika tidak ditemukan */
-    if (____ == 0) {                       /* (B3) cek flag ditemukan */
-        printf("Tidak ditemukan.\n");
-    }
+    /* TODO 2: Setelah loop, cek apakah nilai ditemukan atau tidak.
+     *   Hint: gunakan variabel ditemukan sebagai kondisi if.
+     */
+    /* Tulis kodemu di sini */
 
     return 0;
 }

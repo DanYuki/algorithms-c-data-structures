@@ -4,13 +4,10 @@
  * Nama    : ___________________________
  * Tanggal : ___________________________
  *
- * Petunjuk:
- *   - Isi semua bagian bertanda ____ (garis bawah empat)
- *   - Mulai dari (0): isi nama header yang dibutuhkan
- *   - File ini belum bisa di-compile sebelum semua ____ diisi
- *
- * Compile : gcc 03_Task_B2.c -o 03_Task_B2 -Wall
- * Jalankan: ./03_Task_B2  (Linux/Mac)  atau  03_Task_B2.exe  (Windows)
+ * Deskripsi:
+ *   Latihan dua operasi penting dari <string.h>:
+ *   (1) strcpy  — salin isi satu string ke string lain
+ *   (2) strcmp  — bandingkan dua string (hasilnya 0 jika sama)
  *
  * Expected Output:
  *   Sumber                  : "Belajar C"
@@ -18,14 +15,17 @@
  *
  *   Bandingkan "apel" dan "apel"   : SAMA
  *   Bandingkan "apel" dan "mangga" : BERBEDA
+ *
+ * Compile : gcc 03_Task_B2.c -o 03_Task_B2 -Wall
+ * Jalankan: ./03_Task_B2  (Linux/Mac)  |  03_Task_B2.exe  (Windows)
  */
 
 #include <stdio.h>
-#include <____.h>   /* (0) header untuk fungsi strcpy dan strcmp */
+#include <string.h>
 
 int main() {
     char sumber[] = "Belajar C";
-    char tujuan[20];      /* pastikan cukup besar untuk menampung isi sumber */
+    char tujuan[20];      /* cukup besar untuk menampung isi sumber + '\0' */
 
     char kata1[] = "apel";
     char kata2[] = "apel";
@@ -33,28 +33,21 @@ int main() {
 
     printf("=== Task B2: strcpy & strcmp ===\n");
 
-    /* (B1) Salin sumber ke tujuan menggunakan strcpy */
-    ____(tujuan, sumber);                 /* (B1) nama fungsi untuk menyalin string */
+    /* TODO 1: Salin isi sumber ke tujuan menggunakan strcpy, lalu cetak keduanya.
+     *   Ingat: di C, assignment biasa (tujuan = sumber) tidak bisa digunakan untuk string.
+     *   Format output:
+     *     Sumber                  : "Belajar C"
+     *     Tujuan (setelah strcpy) : "Belajar C"
+     */
+    /* Tulis kodemu di sini */
 
-    printf("Sumber                  : \"%s\"\n", sumber);
-    printf("Tujuan (setelah strcpy) : \"%s\"\n", tujuan);
-
-    /* (B2a) Bandingkan kata1 dan kata2 menggunakan strcmp.
-     *       strcmp mengembalikan 0 jika kedua string SAMA. */
-    printf("\nBandingkan \"%s\" dan \"%s\"   : ", kata1, kata2);
-    if (____(kata1, kata2) == ____) {     /* (B2a) nama fungsi | nilai kembalian jika sama */
-        printf("SAMA\n");
-    } else {
-        printf("BERBEDA\n");
-    }
-
-    /* (B2b) Bandingkan kata1 dan kata3 */
-    printf("Bandingkan \"%s\" dan \"%s\" : ", kata1, kata3);
-    if (____(kata1, kata3) == 0) {        /* (B2b) nama fungsi perbandingan */
-        printf("SAMA\n");
-    } else {
-        printf("BERBEDA\n");
-    }
+    /* TODO 2: Bandingkan pasangan string berikut menggunakan strcmp, lalu cetak hasilnya.
+     *   (a) kata1 vs kata2  → harus tampil: Bandingkan "apel" dan "apel"   : SAMA
+     *   (b) kata1 vs kata3  → harus tampil: Bandingkan "apel" dan "mangga" : BERBEDA
+     *   Hint: strcmp(s1, s2) mengembalikan 0 jika kedua string identik.
+     *         Jangan bandingkan string dengan ==; itu membandingkan alamat, bukan isi.
+     */
+    /* Tulis kodemu di sini */
 
     return 0;
 }

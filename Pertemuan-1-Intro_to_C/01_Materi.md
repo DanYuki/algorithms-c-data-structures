@@ -11,9 +11,10 @@
 2. [Setup Environment](#2-setup-environment)
 3. [Anatomi Program C](#3-anatomi-program-c)
 4. [Tipe Data & Variabel](#4-tipe-data--variabel)
-5. [Alur Kompilasi](#5-alur-kompilasi)
-6. [Problem Solving: Flowchart → Pseudocode → C](#6-problem-solving-flowchart--pseudocode--c)
-7. [Prompt Engineering Dasar](#7-prompt-engineering-dasar)
+5. [Operasi Aritmatika](#5-operasi-aritmatika)
+6. [Alur Kompilasi](#6-alur-kompilasi)
+7. [Problem Solving: Flowchart → Pseudocode → C](#7-problem-solving-flowchart--pseudocode--c)
+8. [Prompt Engineering Dasar](#8-prompt-engineering-dasar)
 
 ---
 
@@ -173,7 +174,108 @@ int main() {
 
 ---
 
-## 5. Alur Kompilasi
+## 5. Operasi Aritmatika
+
+Setelah bisa menyimpan data di variabel, hal paling sering kamu lakukan berikutnya adalah **menghitung** — menjumlah, mengalikan, mencari sisa bagi, dan seterusnya. C menyediakan lima operator aritmatika dasar.
+
+### Operator Aritmatika
+
+| Operator | Arti | Contoh | Hasil |
+|----------|------|--------|-------|
+| `+` | Penjumlahan | `7 + 3` | `10` |
+| `-` | Pengurangan | `7 - 3` | `4` |
+| `*` | Perkalian | `7 * 3` | `21` |
+| `/` | Pembagian | `7 / 3` | `2` (lihat catatan di bawah) |
+| `%` | Modulo (sisa bagi) | `7 % 3` | `1` |
+
+Contoh penggunaan:
+
+```c
+#include <stdio.h>
+
+int main() {
+    int harga_satuan = 1500;
+    int jumlah_beli  = 4;
+
+    int total = harga_satuan * jumlah_beli;   /* 1500 * 4 = 6000 */
+
+    printf("Total belanja: %d\n", total);     /* Output: Total belanja: 6000 */
+
+    return 0;
+}
+```
+
+### ⚠️ Jebakan Paling Umum: Pembagian Bilangan Bulat
+
+Di C, jika kamu membagi **dua bilangan bulat (`int`)**, hasilnya juga bilangan bulat — bagian desimalnya **dibuang**, bukan dibulatkan.
+
+```c
+int a = 7;
+int b = 2;
+
+printf("%d\n", a / b);   /* Output: 3  (BUKAN 3.5!) */
+```
+
+`7 / 2` secara matematika adalah `3.5`, tapi karena keduanya `int`, C membuang `.5` dan hanya menyisakan `3`.
+
+**Cara mendapatkan hasil desimal:** pastikan minimal satu operand bertipe desimal, lalu simpan ke `float`/`double`:
+
+```c
+float hasil = 7.0 / 2;   /* gunakan 7.0, bukan 7 */
+printf("%.1f\n", hasil); /* Output: 3.5 */
+```
+
+> **Aturan praktis:** `int / int` selalu menghasilkan `int`. Jika kamu butuh pecahan, buat salah satu angkanya jadi desimal (mis. `7.0` atau `(float)a`).
+
+### Operator Modulo `%` — Sisa Bagi
+
+Operator `%` memberikan **sisa** dari pembagian. Ini terdengar sederhana, tapi sangat sering dipakai.
+
+```c
+printf("%d\n", 10 % 3);   /* 10 dibagi 3 = 3 sisa 1  →  Output: 1 */
+printf("%d\n", 12 % 4);   /* 12 dibagi 4 = 3 sisa 0  →  Output: 0 */
+```
+
+Salah satu kegunaan paling umum: **mengecek apakah sebuah bilangan habis dibagi**. Jika `angka % 2` bernilai `0`, berarti `angka` habis dibagi 2 — alias **genap**. Konsep ini akan langsung kita pakai di contoh problem solving di bawah.
+
+> **Catatan:** `%` hanya bisa dipakai untuk bilangan bulat (`int`), tidak untuk `float`/`double`.
+
+### Urutan Operasi (Precedence)
+
+Sama seperti matematika, C mengerjakan `*`, `/`, dan `%` **lebih dulu** daripada `+` dan `-`. Gunakan tanda kurung `()` jika ingin mengubah urutan.
+
+```c
+int x = 2 + 3 * 4;     /* 3*4 dulu, baru +2  →  14 */
+int y = (2 + 3) * 4;   /* (2+3) dulu, baru *4 →  20 */
+```
+
+> **Tips:** ketika ragu, tambahkan tanda kurung. Kode yang eksplisit lebih mudah dibaca dan mengurangi bug.
+
+### Contoh Dunia Nyata: Konversi Suhu
+
+Rumus konversi Celsius ke Fahrenheit adalah `F = C × 9/5 + 32`. Perhatikan bagaimana jebakan pembagian bulat muncul di sini:
+
+```c
+#include <stdio.h>
+
+int main() {
+    float celsius = 25.0;
+
+    /* Tulis 9.0/5 (bukan 9/5) supaya pembagian menghasilkan desimal.
+       Jika ditulis 9/5, C akan menghitungnya sebagai 1, hasilnya salah. */
+    float fahrenheit = celsius * 9.0 / 5 + 32;
+
+    printf("%.1f C = %.1f F\n", celsius, fahrenheit);  /* Output: 25.0 C = 77.0 F */
+
+    return 0;
+}
+```
+
+> Coba ganti `9.0 / 5` menjadi `9 / 5` lalu jalankan — kamu akan melihat hasil yang salah (`57.0`). Ini contoh nyata kenapa memahami pembagian bulat itu penting.
+
+---
+
+## 6. Alur Kompilasi
 
 Ketika kamu menulis kode C lalu menjalankan `gcc`, sebenarnya ada beberapa tahap yang terjadi:
 
@@ -191,7 +293,7 @@ Sebagai pemula, kamu cukup tahu: **kode C tidak langsung dijalankan — ia harus
 
 ---
 
-## 6. Problem Solving: Flowchart → Pseudocode → C
+## 7. Problem Solving: Flowchart → Pseudocode → C
 
 Programmer yang baik tidak langsung menulis kode. Mereka **merancang solusinya terlebih dahulu**. Urutan yang disarankan:
 
@@ -286,7 +388,7 @@ Masukkan bilangan: 12
 
 ---
 
-## 7. Prompt Engineering Dasar
+## 8. Prompt Engineering Dasar
 
 AI seperti ChatGPT atau Claude bisa menjadi partner belajar yang luar biasa — *jika kamu tahu cara memintanya dengan tepat*. Kemampuan ini disebut **Prompt Engineering**.
 
@@ -348,6 +450,7 @@ Kenapa lebih baik: ada konteks (pemula, bahasa C), ada kode konkret, ada pesan e
 | Setup | VS Code + GCC compiler + extension C/C++ |
 | Program C | `#include` → `main()` → statement → `return 0` |
 | Tipe data | `int`, `float`, `double`, `char` + format specifier (`%d`, `%f`, `%c`) |
+| Aritmatika | `+ - * / %`; hati-hati `int / int` membuang desimal; `%` untuk sisa bagi; `*` `/` `%` didahulukan dari `+` `-` |
 | Input | `scanf("%d", &variabel)` |
 | Kompilasi | Source → preprocessing → compile → link → executable |
 | Problem solving | Flowchart → Pseudocode → Kode C |

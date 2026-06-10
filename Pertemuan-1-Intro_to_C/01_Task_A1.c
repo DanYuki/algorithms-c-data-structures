@@ -25,5 +25,5 @@ int ____() {      /* (A2) Nama fungsi utama program C */
     printf("Halo, %s!\n", "Haltev");       /* Ganti "Haltev" dengan namamu */
     printf(____);                   /* (A3) Cetak: "Ini program C pertamaku.\n" */
 
-    return ____;  /* (A4) Nilai kembalian yang menandakan program sukses */
+    return 0;  /* (A4) Nilai kembalian yang menandakan program sukses */
 }
