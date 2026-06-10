@@ -261,8 +261,9 @@ Rumus konversi Celsius ke Fahrenheit adalah `F = C × 9/5 + 32`. Perhatikan baga
 int main() {
     float celsius = 25.0;
 
-    /* Tulis 9.0/5 (bukan 9/5) supaya pembagian menghasilkan desimal.
-       Jika ditulis 9/5, C akan menghitungnya sebagai 1, hasilnya salah. */
+    /* Tulis 9.0/5 supaya rasio dihitung sebagai desimal (1.8).
+       JANGAN menulisnya sebagai celsius * (9/5) + 32 — di situ 9/5 dihitung
+       lebih dulu sebagai pembagian bilangan bulat = 1 (bukan 1.8), hasilnya salah. */
     float fahrenheit = celsius * 9.0 / 5 + 32;
 
     printf("%.1f C = %.1f F\n", celsius, fahrenheit);  /* Output: 25.0 C = 77.0 F */
@@ -271,7 +272,7 @@ int main() {
 }
 ```
 
-> Coba ganti `9.0 / 5` menjadi `9 / 5` lalu jalankan — kamu akan melihat hasil yang salah (`57.0`). Ini contoh nyata kenapa memahami pembagian bulat itu penting.
+> Coba ganti rumusnya menjadi `celsius * (9/5) + 32` lalu jalankan — karena `9/5` dihitung sebagai bilangan bulat (hasilnya `1`, bukan `1.8`), kamu akan mendapat `57.0` F, bukan `77.0` F. Ini contoh nyata kenapa memahami pembagian bilangan bulat itu penting.
 
 ---
 

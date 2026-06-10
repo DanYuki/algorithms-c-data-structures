@@ -46,7 +46,7 @@
 |-------------|-------------------|
 | Lupa titik koma (`;`) di akhir statement | Tunjukkan pesan error dari GCC, minta mereka baca pesan error sendiri. Biasakan baca error message dari awal. |
 | Bingung kapan pakai `%d` vs `%f` | Gunakan analogi: format specifier seperti "label kotak" — `%d` untuk kotak integer, `%f` untuk kotak desimal. |
-| Mengira `7 / 2` menghasilkan `3.5` | Demo langsung di terminal: `int` dibagi `int` membuang desimal. Tunjukkan perbaikannya dengan `7.0 / 2`. Hubungkan ke contoh konversi suhu (kalau pakai `9/5` hasil salah). |
+| Mengira `7 / 2` menghasilkan `3.5` | Demo langsung di terminal: `int` dibagi `int` membuang desimal. Tunjukkan perbaikannya dengan `7.0 / 2`. Hubungkan ke contoh konversi suhu: `celsius * (9/5) + 32` salah (9/5 = 1), `celsius * 9.0/5 + 32` benar. |
 | Mengira `%` adalah persen | Jelaskan `%` di C adalah **sisa bagi (modulo)**, bukan persentase. Contoh: `10 % 3 = 1`. |
 | Bingung dengan `&` di `scanf` | Cukup bilang: *"scanf butuh 'alamat' bukan 'isinya' — ini akan kita pelajari lebih dalam di bab pointer."* Jangan jelaskan terlalu dalam di P1. |
 | Menyamakan pseudocode dengan komentar kode | Tekankan: pseudocode ditulis **sebelum** kode, bukan sesudah. Tujuannya berbeda. |
