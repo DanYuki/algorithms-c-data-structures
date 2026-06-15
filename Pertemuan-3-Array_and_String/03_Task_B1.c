@@ -30,17 +30,12 @@ int main() {
     printf("=== Task B1: Panjang String ===\n");
     printf("String           : \"%s\"\n", kata);
 
-    /* TODO 1: Cetak panjang string kata menggunakan strlen().
-     *   Hint: strlen(kata) mengembalikan jumlah karakter tanpa '\0'.
-     *         Format output: "Panjang (strlen) : 10"
-     */
-    /* Tulis kodemu di sini */
 
-    /* TODO 2: Hitung panjang kata secara manual dengan for loop.
-     *   Hint: loop dengan kondisi kata[i] != '\0'; tiap iterasi tambahkan panjang_manual.
-     *         Setelah loop, cetak hasilnya dengan format "Panjang (manual) : 10"
-     */
-    /* Tulis kodemu di sini */
 
     return 0;
 }
+
+/* TODO 1: Cetak panjang string kata menggunakan strlen().
+ *   Hint: strlen(kata) mengembalikan jumlah karakter tanpa '\0'.
+ *         Format output: "Panjang (strlen) : 10"
+ */

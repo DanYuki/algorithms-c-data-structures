@@ -35,18 +35,20 @@ int main() {
     printf("Cari nilai: ");
     scanf("%d", &cari);
 
-    /* TODO 1: Telusuri setiap elemen array nilai[] dari indeks 0 sampai 4.
-     *   Jika nilai[i] sama dengan cari:
-     *     - cetak "Ditemukan di indeks %d."
-     *     - set ditemukan = 1
-     *     - hentikan loop dengan break (tidak perlu lanjut mencari)
-     */
-    /* Tulis kodemu di sini */
-
-    /* TODO 2: Setelah loop, cek apakah nilai ditemukan atau tidak.
-     *   Hint: gunakan variabel ditemukan sebagai kondisi if.
-     */
-    /* Tulis kodemu di sini */
+    
 
     return 0;
 }
+
+
+// Hints
+/* TODO 1: Telusuri setiap elemen array nilai[] dari indeks 0 sampai 4.
+ *   Jika nilai[i] sama dengan cari:
+ *     - cetak "Ditemukan di indeks %d."
+ *     - set ditemukan = 1
+ *     - hentikan loop dengan break (tidak perlu lanjut mencari)
+ */
+
+/* TODO 2: Setelah loop, cek apakah nilai ditemukan atau tidak.
+ *   Hint: gunakan variabel ditemukan sebagai kondisi if.
+ */

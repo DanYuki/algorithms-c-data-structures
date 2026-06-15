@@ -37,24 +37,6 @@ int main() {
 
     printf("Masukkan 5 nilai:\n");
 
-    /* TODO 1: Baca 5 bilangan dari pengguna, simpan ke dalam array nilai[].
-     *   Hint: gunakan for loop (i dari 0 sampai i < 5).
-     *         Di tiap iterasi: printf prompt "  nilai[%d] = " lalu scanf ke &nilai[i].
-     */
-    /* Tulis kodemu di sini */
-
-    /* TODO 2: Inisialisasi terbesar dan terkecil menggunakan elemen pertama array.
-     *   Hint: pakai nilai[0] sebagai titik awal — bukan angka seperti 0 atau 999.
-     */
-    /* Tulis kodemu di sini */
-
-    /* TODO 3: Dalam satu for loop, hitung total dan perbarui terbesar serta terkecil.
-     *   Hint: untuk setiap nilai[i] —
-     *         tambahkan ke total;
-     *         jika nilai[i] lebih besar dari terbesar, perbarui terbesar;
-     *         jika nilai[i] lebih kecil dari terkecil, perbarui terkecil.
-     */
-    /* Tulis kodemu di sini */
 
     printf("\nTotal    : %d\n", total);
     printf("Rata-rata: %.1f\n", (float)total / 5);
@@ -63,3 +45,21 @@ int main() {
 
     return 0;
 }
+
+
+// Hints:
+/* TODO 1: Baca 5 bilangan dari pengguna, simpan ke dalam array nilai[].
+ *   Hint: gunakan for loop (i dari 0 sampai i < 5).
+ *         Di tiap iterasi: printf prompt "  nilai[%d] = " lalu scanf ke &nilai[i].
+ */
+
+/* TODO 2: Inisialisasi terbesar dan terkecil menggunakan elemen pertama array.
+ *   Hint: pakai nilai[0] sebagai titik awal — bukan angka seperti 0 atau 999.
+ */
+
+/* TODO 3: Dalam satu for loop, hitung total dan perbarui terbesar serta terkecil.
+ *   Hint: untuk setiap nilai[i] —
+ *         tambahkan ke total;
+ *         jika nilai[i] lebih besar dari terbesar, perbarui terbesar;
+ *         jika nilai[i] lebih kecil dari terkecil, perbarui terkecil.
+ */
