@@ -171,20 +171,35 @@ body::before {
   display: flex; align-items: flex-start; justify-content: center;
   padding: 28px 20px;
   position: relative;
-  transition: flex .3s;
 }
-.viz-area.compact {
-  flex: 0 0 260px; min-height: 260px; max-height: 260px;
-  padding: 16px 20px 8px;
+
+/* side-by-side wrapper for playground / memory tabs */
+.side-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
 }
+.side-layout .viz-area {
+  flex: 0 0 340px;
+  min-width: 300px;
+  border-right: 1px solid var(--border);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+/* .side-layout .tab-content handled via inline style */
 
 /* ════════════════════════════════════
    STACK VISUAL
 ════════════════════════════════════ */
 .stack-scene {
   display: flex;
-  gap: 32px;
-  align-items: flex-end;
+  gap: 28px;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 /* The physical stack column */
@@ -193,7 +208,7 @@ body::before {
   flex-direction: column;
   align-items: stretch;
   position: relative;
-  width: 180px;
+  width: 176px;
 }
 
 /* container walls */
@@ -304,22 +319,32 @@ body::before {
 
 /* info panel next to stack */
 .stack-info {
-  display: flex; flex-direction: column; gap: 10px;
-  padding-bottom: 4px; min-width: 160px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  padding-bottom: 4px;
+  width: 176px;
+}
+/* in side panel, stack-info goes below the stack column */
+#stack-scene-side .stack-scene-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
 }
 .info-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 14px;
+  border-radius: 5px;
+  padding: 7px 10px;
 }
 .info-label {
-  font-family: var(--mono); font-size: 0.6rem;
+  font-family: var(--mono); font-size: 0.57rem;
   color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .info-val {
-  font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+  font-family: var(--mono); font-size: 0.95rem; font-weight: 700;
   color: var(--bright);
 }
 .info-val.top-v  { color: var(--orange); }
@@ -510,31 +535,37 @@ body::before {
   <!-- CANVAS SIDE -->
   <div class="canvas-side">
 
-    <!-- VIZ AREA -->
-    <div class="viz-area" id="viz-area">
-      <div class="stack-scene" id="stack-scene">
-        <!-- filled by JS -->
+    <!-- LEARN LAYOUT: vertical stack (viz + explain + ctrl) -->
+    <div id="learn-layout" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+      <div class="viz-area" id="viz-area">
+        <div class="stack-scene" id="stack-scene"></div>
+      </div>
+      <div class="explain-bar" id="explain-bar">
+        <span class="explain-icon">&#x1F4A1;</span>
+        <span class="explain-txt" id="explain-txt">
+          A <strong>stack</strong> is a Last-In, First-Out (LIFO) data structure. Think of a stack of plates &#x2014; you can only add or remove from the top. Press <strong>Next &#x25BA;</strong> to begin.
+        </span>
+      </div>
+      <div class="ctrl-bar" id="ctrl-bar">
+        <button class="btn" id="btn-prev" onclick="prevStep()">&#x25C4; Prev</button>
+        <div class="dots-row" id="dots-row"></div>
+        <button class="btn prime" id="btn-next" onclick="nextStep()">Next &#x25BA;</button>
+        <button class="btn" onclick="goReset()">&#x21BA; Reset</button>
+        <span class="step-lbl" id="step-lbl">Step 0</span>
       </div>
     </div>
 
-    <!-- EXPLAIN BAR -->
-    <div class="explain-bar" id="explain-bar">
-      <span class="explain-icon">💡</span>
-      <span class="explain-txt" id="explain-txt">
-        A <strong>stack</strong> is a Last-In, First-Out (LIFO) data structure. Think of a stack of plates — you can only add or remove from the top. Press <strong>Next ▶</strong> to begin.
-      </span>
+    <!-- SIDE LAYOUT: horizontal split (viz left | controls right) for play/mem -->
+    <div id="side-layout" style="flex:1;display:none;flex-direction:row;overflow:hidden;min-height:0;">
+      <div class="viz-area" id="viz-area-side" style="flex:0 0 230px;min-width:210px;border-right:1px solid var(--border);overflow-y:auto;padding:16px 14px;justify-content:flex-start;align-items:flex-start;">
+        <div class="stack-scene" id="stack-scene-side"></div>
+      </div>
+      <div class="tab-content" id="tab-content" style="flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0;"></div>
     </div>
 
-    <!-- TAB CONTENT -->
-    <div class="tab-content" id="tab-content"></div>
-
-    <!-- CONTROL BAR -->
-    <div class="ctrl-bar" id="ctrl-bar">
-      <button class="btn" id="btn-prev" onclick="prevStep()">◀ Prev</button>
-      <div class="dots-row" id="dots-row"></div>
-      <button class="btn prime" id="btn-next" onclick="nextStep()">Next ▶</button>
-      <button class="btn" onclick="goReset()">↺ Reset</button>
-      <span class="step-lbl" id="step-lbl">Step 0</span>
+    <!-- FULL LAYOUT: full-width for cheat/quiz -->
+    <div id="full-layout" style="flex:1;display:none;flex-direction:column;overflow:hidden;min-height:0;">
+      <div class="tab-content" id="tab-content-full" style="flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0;"></div>
     </div>
 
   </div>
@@ -675,8 +706,8 @@ function renderCode(hlLines) {
 // ══════════════════════════════════════════════
 // RENDER STACK VISUAL
 // ══════════════════════════════════════════════
-function renderStack(items, top, maxSize, opts = {}) {
-  const scene = document.getElementById('stack-scene');
+function renderStack(items, top, maxSize, opts = {}, sceneId) {
+  const scene = document.getElementById(sceneId || 'stack-scene');
   scene.innerHTML = '';
 
   const col = document.createElement('div');
@@ -729,12 +760,11 @@ function renderStack(items, top, maxSize, opts = {}) {
     });
   }
 
-  // TOP pointer: position it next to the top item
-  if (top >= 0 && items.length > 0) {
+  // TOP pointer arrow — only shown in learn panel (wide layout), hidden in side panel
+  if (top >= 0 && items.length > 0 && sceneId !== 'stack-scene-side') {
     const ptrDiv = document.createElement('div');
     ptrDiv.className = 'top-pointer';
-    // top item is at revIdx=0, each block is 52px, measured from top of walls
-    const topPx = (maxSize - 1 - top) * 52 + 18; // center vertically in block
+    const topPx = (maxSize - 1 - top) * 52 + 18;
     ptrDiv.style.top = topPx + 'px';
     ptrDiv.innerHTML = `
       <div class="top-arrow-line"></div>
@@ -750,18 +780,17 @@ function renderStack(items, top, maxSize, opts = {}) {
   botLbl.textContent = `stack[0..${maxSize-1}]  MAX=${maxSize}`;
   col.appendChild(botLbl);
 
-  scene.appendChild(col);
-
-  // info cards
+  // info cards — placed BELOW the stack col (inside col) when in side panel,
+  // or beside the stack when in learn panel (wide layout)
   const info = document.createElement('div');
   info.className = 'stack-info';
 
-  const topCard = makeInfoCard('top', top === -1 ? '-1 (empty)' : String(top), top === -1 ? '' : 'top-v');
-  const sizeCard = makeInfoCard('size', String(items.length), 'size-v');
+  const topCard    = makeInfoCard('top',    top === -1 ? '-1' : String(top),       top === -1 ? '' : 'top-v');
+  const sizeCard   = makeInfoCard('size',   String(items.length),                   'size-v');
   const statusCard = makeInfoCard('status',
     top === -1 ? 'EMPTY' : top === maxSize - 1 ? 'FULL' : 'OK',
     top === -1 ? '' : top === maxSize - 1 ? 'full-v' : 'ok-v');
-  const peekCard = makeInfoCard('peek()',
+  const peekCard   = makeInfoCard('peek()',
     items.length === 0 ? 'N/A' : String(items[top]),
     items.length ? 'top-v' : '');
 
@@ -769,7 +798,20 @@ function renderStack(items, top, maxSize, opts = {}) {
   info.appendChild(sizeCard);
   info.appendChild(statusCard);
   info.appendChild(peekCard);
-  scene.appendChild(info);
+
+  const isSidePanel = sceneId === 'stack-scene-side';
+  if (isSidePanel) {
+    // stack col + info grid stacked vertically inside scene
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:stretch;width:176px;';
+    wrapper.appendChild(col);
+    wrapper.appendChild(info);
+    scene.appendChild(wrapper);
+  } else {
+    // learn panel: stack col on left, info cards on right
+    scene.appendChild(col);
+    scene.appendChild(info);
+  }
 }
 
 function makeInfoCard(label, val, cls) {
@@ -816,26 +858,23 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
 
-  const vizEl  = document.getElementById('viz-area');
-  const expEl  = document.getElementById('explain-bar');
-  const ctrlEl = document.getElementById('ctrl-bar');
-  const sideEl = document.getElementById('sidebar');
-  const tcEl   = document.getElementById('tab-content');
+  const learnLayout = document.getElementById('learn-layout');
+  const sideLayout  = document.getElementById('side-layout');
+  const fullLayout  = document.getElementById('full-layout');
+  const sidebarEl   = document.getElementById('sidebar');
 
   const isLearn = tab === 'learn';
-  const showViz = isLearn || tab === 'play' || tab === 'mem';
+  const isSide  = tab === 'play' || tab === 'mem';
+  const isFull  = tab === 'cheat' || tab === 'quiz';
 
-  vizEl.style.display   = showViz ? '' : 'none';
-  vizEl.classList.toggle('compact', showViz && !isLearn);
-  expEl.style.display   = isLearn ? '' : 'none';
-  ctrlEl.style.display  = isLearn ? '' : 'none';
-  sideEl.style.display  = isLearn ? '' : 'none';
-  tcEl.style.display    = isLearn ? 'none' : 'flex';
-  tcEl.style.flexDirection = 'column';
+  learnLayout.style.display = isLearn ? 'flex' : 'none';
+  sideLayout.style.display  = isSide  ? 'flex' : 'none';
+  fullLayout.style.display  = isFull  ? 'flex' : 'none';
+  sidebarEl.style.display   = isLearn ? '' : 'none';
 
-  if      (isLearn)      { applyStep(curStep); }
+  if      (isLearn)         { applyStep(curStep); }
   else if (tab === 'play')  { buildPlayground(); renderPgStack(); }
-  else if (tab === 'mem')   { buildMemTab();    renderPgStack(); }
+  else if (tab === 'mem')   { buildMemTab();     renderPgStack(); }
   else if (tab === 'cheat') { buildCheat(); }
   else if (tab === 'quiz')  { buildQuiz(); }
 }
@@ -844,7 +883,7 @@ function switchTab(tab, btn) {
 // PLAYGROUND
 // ══════════════════════════════════════════════
 function renderPgStack() {
-  renderStack(pgItems, pgItems.length - 1, PG_MAX, {});
+  renderStack(pgItems, pgItems.length - 1, PG_MAX, {}, 'stack-scene-side');
 }
 
 function pgPush(val) {
@@ -888,6 +927,7 @@ function pgAddLog(msg, cls) {
 
 function buildPlayground() {
   const tc = document.getElementById('tab-content');
+  if (!tc) return;
   tc.innerHTML = `<div class="pg-wrap">
 
     <div>
@@ -981,6 +1021,7 @@ function pgDemoParens() {
 // ══════════════════════════════════════════════
 function buildMemTab() {
   const tc = document.getElementById('tab-content');
+  if (!tc) return;
   const top = pgItems.length - 1;
 
   const rows = Array.from({ length: PG_MAX }, (_, i) => {
@@ -1022,7 +1063,7 @@ function buildMemTab() {
 // CHEATSHEET
 // ══════════════════════════════════════════════
 function buildCheat() {
-  const tc = document.getElementById('tab-content');
+  const tc = document.getElementById('tab-content-full');
   tc.innerHTML = `<div class="cheat-wrap">
 
   <div class="cblk">
@@ -1171,7 +1212,7 @@ const QUIZ = [
 
 function buildQuiz() {
   if (!quizState.length) quizState = new Array(QUIZ.length).fill(null);
-  const tc = document.getElementById('tab-content');
+  const tc = document.getElementById('tab-content-full');
   tc.innerHTML = `<div class="quiz-wrap">
     ${QUIZ.map((q, qi) => `
       <div class="qcard">
