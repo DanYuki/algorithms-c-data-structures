@@ -347,7 +347,7 @@ ptr = NULL;     /* sekarang aman — dereferencing NULL akan crash dengan pesan 
 
 Crash akibat dereference `NULL` jauh lebih mudah di-debug daripada *undefined behavior* dari dangling pointer.
 
-### Rangkuman Praktik Aman
+### Rangkuman Safe Practice
 
 ```c
 /* 1. Alokasi */
