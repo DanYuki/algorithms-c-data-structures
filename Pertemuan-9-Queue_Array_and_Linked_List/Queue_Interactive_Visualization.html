@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualizer Interaktif — Queue (FIFO)</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --border:#334155;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#818cf8;
+    --front:#22c55e; --rear:#f59e0b; --cell:#334155; --cellfill:#0ea5e9;
+    --danger:#ef4444; --ok:#22c55e; --empty:#1e293b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:24px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:1.6rem;margin-bottom:4px}
+  .sub{color:var(--muted);margin-bottom:20px;font-size:.95rem}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:10px 18px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;transition:.15s}
+  .tab:hover{background:var(--panel2);color:var(--text)}
+  .tab.active{background:var(--accent);color:#04263a;border-color:var(--accent)}
+  .view{display:none}
+  .view.active{display:block}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px}
+  .panel h2{font-size:1.15rem;margin-bottom:6px;color:var(--accent)}
+  .panel p.desc{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  button.act{background:var(--accent2);color:#0b1027;border:none;padding:10px 16px;border-radius:9px;cursor:pointer;font-weight:700;font-size:.9rem;transition:.15s}
+  button.act:hover{filter:brightness(1.1)}
+  button.act:disabled{opacity:.4;cursor:not-allowed}
+  button.deq{background:var(--front);color:#052e16}
+  button.enq{background:var(--rear);color:#3d2404}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  input.num{width:64px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px;border-radius:8px;font-size:.9rem;text-align:center}
+
+  /* Array cells */
+  .array{display:flex;gap:8px;justify-content:center;margin:26px 0 10px;flex-wrap:wrap}
+  .cell{width:78px;height:78px;border-radius:12px;border:2px solid var(--border);background:var(--empty);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;position:relative;transition:.3s}
+  .cell.filled{background:linear-gradient(160deg,#0ea5e9,#0369a1);border-color:#38bdf8;color:#fff;box-shadow:0 4px 14px rgba(14,165,233,.35)}
+  .cell.wasted{background:repeating-linear-gradient(45deg,#1e293b,#1e293b 8px,#243347 8px,#243347 16px);border-color:#475569}
+  .cell .idx{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:.72rem;color:var(--muted);font-weight:500}
+  .cell .ptr{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);font-size:.72rem;font-weight:700;white-space:nowrap}
+  .cell .ptr.front{color:var(--front)}
+  .cell .ptr.rear{color:var(--rear)}
+  .cell.pop-in{animation:popin .35s ease}
+  @keyframes popin{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+  /* Linked list */
+  .llrow{display:flex;align-items:center;gap:0;justify-content:center;margin:30px 0 10px;flex-wrap:wrap;min-height:90px}
+  .lnode{display:flex;align-items:center}
+  .box{background:linear-gradient(160deg,#4f46e5,#3730a3);border:2px solid #818cf8;border-radius:12px;min-width:66px;height:64px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;position:relative;box-shadow:0 4px 14px rgba(79,70,229,.35)}
+  .box .tag{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:.72rem;font-weight:700;white-space:nowrap}
+  .box .tag.head{color:var(--front)}
+  .box .tag.tail{color:var(--rear)}
+  .arrow{color:var(--muted);font-size:1.6rem;padding:0 6px}
+  .nullbox{color:var(--muted);font-size:.9rem;padding:0 6px;font-style:italic}
+  .lnode.pop-in{animation:popin .35s ease}
+
+  /* circular layout */
+  .circle-wrap{display:flex;justify-content:center;margin:20px 0}
+  svg{max-width:100%}
+
+  .stat{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+  .stat div{font-size:.9rem}
+  .stat b{color:var(--accent)}
+  .log{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:14px;font-family:'Consolas',monospace;font-size:.85rem;min-height:44px;color:var(--muted)}
+  .log .ok{color:var(--ok)}
+  .log .err{color:var(--danger)}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:700}
+  .badge.empty{background:#3f2937;color:#fca5a5}
+  .badge.full{background:#3d2f12;color:#fcd34d}
+  .badge.ok{background:#0f3222;color:#86efac}
+  .code{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'Consolas',monospace;font-size:.82rem;color:#cbd5e1;overflow-x:auto;margin-top:8px;white-space:pre}
+  .code .kw{color:#c792ea}.code .fn{color:#82aaff}.code .cm{color:#546e7a}.code .num{color:#f78c6c}
+  .hint{background:#0c2b3a;border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;font-size:.88rem;margin-top:14px;color:#bae6fd}
+  .fifo-legend{display:flex;gap:18px;justify-content:center;font-size:.82rem;color:var(--muted);margin-top:4px}
+  .fifo-legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎢 Visualizer Interaktif — Queue (FIFO)</h1>
+  <p class="sub">Pertemuan 9 · Algorithms, C &amp; Data Structures · <em>First In, First Out</em></p>
+
+  <div class="tabs">
+    <button class="tab active" data-view="array">1 · Queue Array + False Full</button>
+    <button class="tab" data-view="circular">2 · Circular Queue</button>
+    <button class="tab" data-view="ll">3 · Queue Linked List</button>
+  </div>
+
+  <!-- ============ VIEW 1: ARRAY QUEUE ============ -->
+  <div class="view active" id="view-array">
+    <div class="panel">
+      <h2>Queue Berbasis Array — Masalah "Antrian Semu"</h2>
+      <p class="desc">Indeks <b style="color:var(--front)">front</b> & <b style="color:var(--rear)">rear</b> bergerak <b>tanpa melingkar</b> (naif). Coba: enqueue beberapa, lalu dequeue, lalu enqueue lagi sampai slot kiri terbuang.</p>
+      <div class="controls">
+        <input class="num" id="a-val" type="number" value="10" title="nilai">
+        <button class="act enq" id="a-enq">Enqueue ▸ rear</button>
+        <button class="act deq" id="a-deq">◂ Dequeue front</button>
+        <button class="act ghost" id="a-reset">Reset</button>
+      </div>
+      <div class="array" id="a-array"></div>
+      <div class="fifo-legend">
+        <span><i class="dot" style="background:var(--cellfill)"></i>terisi</span>
+        <span><i class="dot" style="background:#334155"></i>kosong</span>
+        <span><i class="dot" style="background:repeating-linear-gradient(45deg,#1e293b,#1e293b 4px,#243347 4px,#243347 8px)"></i>terbuang (wasted)</span>
+      </div>
+      <div class="stat">
+        <div>front = <b id="a-front">0</b></div>
+        <div>rear = <b id="a-rear">-1</b></div>
+        <div>ukuran = <b id="a-size">0</b> / 5</div>
+        <div>status: <span id="a-badge" class="badge empty">KOSONG</span></div>
+      </div>
+      <div class="log" id="a-log">Queue kosong. Mulai dengan Enqueue.</div>
+      <div class="hint" id="a-hint">💡 Tips: enqueue 3×, dequeue 2×, lalu enqueue terus — perhatikan saat rear mentok di indeks 4, slot [0] &amp; [1] yang kosong <b>tidak bisa dipakai</b>. Itulah <b>false full</b>.</div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW 2: CIRCULAR QUEUE ============ -->
+  <div class="view" id="view-circular">
+    <div class="panel">
+      <h2>Circular Queue — Solusi dengan Modulo</h2>
+      <p class="desc">Rumus <code>(index + 1) % KAPASITAS</code> membuat indeks melingkar kembali ke 0. Slot yang sudah di-dequeue <b>dipakai ulang</b> — tidak ada pemborosan.</p>
+      <div class="controls">
+        <input class="num" id="c-val" type="number" value="10">
+        <button class="act enq" id="c-enq">Enqueue</button>
+        <button class="act deq" id="c-deq">Dequeue</button>
+        <button class="act ghost" id="c-reset">Reset</button>
+      </div>
+      <div class="circle-wrap"><svg id="c-svg" viewBox="0 0 360 340" width="380" height="340"></svg></div>
+      <div class="stat">
+        <div>front = <b id="c-front">0</b></div>
+        <div>rear = <b id="c-rear">4</b></div>
+        <div>ukuran = <b id="c-size">0</b> / 5</div>
+        <div>status: <span id="c-badge" class="badge empty">KOSONG</span></div>
+      </div>
+      <div class="log" id="c-log">Queue kosong. Enqueue untuk mulai. Perhatikan rear melingkar dari [4] → [0].</div>
+      <div class="code" id="c-code"><span class="kw">void</span> <span class="fn">enqueue</span>(CircularQueue *q, <span class="kw">int</span> x) {
+    <span class="kw">if</span> (<span class="fn">isFull</span>(q)) { <span class="fn">printf</span>(<span class="num">"Penuh!\n"</span>); <span class="kw">return</span>; }
+    q->rear = (q->rear + <span class="num">1</span>) % KAPASITAS;   <span class="cm">// ← melingkar</span>
+    q->data[q->rear] = x;
+    q->ukuran++;
+}</div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW 3: LINKED LIST QUEUE ============ -->
+  <div class="view" id="view-ll">
+    <div class="panel">
+      <h2>Queue Berbasis Linked List</h2>
+      <p class="desc">Tanpa batas kapasitas. <b style="color:var(--front)">Enqueue</b> → sambung di <b style="color:var(--rear)">tail</b>. <b style="color:var(--front)">Dequeue</b> → lepas dari <b style="color:var(--front)">head</b>. Keduanya O(1).</p>
+      <div class="controls">
+        <input class="num" id="l-val" type="number" value="10">
+        <button class="act enq" id="l-enq">Enqueue ▸ tail</button>
+        <button class="act deq" id="l-deq">◂ Dequeue head</button>
+        <button class="act ghost" id="l-reset">Reset</button>
+      </div>
+      <div class="llrow" id="l-row"></div>
+      <div class="stat">
+        <div>head → <b id="l-head">NULL</b></div>
+        <div>tail → <b id="l-tail">NULL</b></div>
+        <div>jumlah node = <b id="l-size">0</b></div>
+        <div>status: <span id="l-badge" class="badge empty">KOSONG</span></div>
+      </div>
+      <div class="log" id="l-log">Queue kosong (head = tail = NULL).</div>
+      <div class="hint">⚠️ <b>Jebakan tail dangling:</b> saat node terakhir di-dequeue, <code>head</code> jadi NULL — <code>tail</code> harus di-reset ke NULL juga, atau enqueue berikutnya akan mengakses node yang sudah di-<code>free</code>.</div>
+    </div>
+  </div>
+
+  <p class="sub" style="text-align:center;margin-top:8px">Semua operasi menegakkan aturan <b>FIFO</b> — elemen pertama masuk selalu keluar pertama.</p>
+</div>
+
+<script>
+const CAP = 5;
+
+/* ---------- helpers ---------- */
+function setBadge(el, state){
+  el.className = 'badge ' + state;
+  el.textContent = state==='empty'?'KOSONG':state==='full'?'PENUH':'OK';
+}
+function flash(logEl, msg, type){
+  logEl.innerHTML = type ? `<span class="${type}">${msg}</span>` : msg;
+}
+
+/* ================= 1. ARRAY QUEUE (naive, non-circular) ================= */
+const A = { data:new Array(CAP).fill(null), front:0, rear:-1, size:0, everFront:0 };
+const aArr=document.getElementById('a-array');
+function renderA(){
+  aArr.innerHTML='';
+  for(let i=0;i<CAP;i++){
+    const c=document.createElement('div');
+    c.className='cell';
+    const filled = i>=A.front && i<=A.rear && A.size>0;
+    const wasted = i<A.front && A.rear>=0;         // slot kiri front yg terbuang
+    if(filled){c.classList.add('filled');c.textContent=A.data[i];}
+    else if(wasted){c.classList.add('wasted');}
+    let ptr='';
+    if(A.size>0 && i===A.front) ptr+=`<span class="ptr front">▲front</span>`;
+    if(A.size>0 && i===A.rear) ptr+=`<span class="ptr rear" style="bottom:-44px">▲rear</span>`;
+    c.innerHTML=`<span class="idx">[${i}]</span>${A.data[i]!==null&&filled?A.data[i]:''}${ptr}`;
+    aArr.appendChild(c);
+  }
+  document.getElementById('a-front').textContent=A.front;
+  document.getElementById('a-rear').textContent=A.rear;
+  document.getElementById('a-size').textContent=A.size;
+  const badge=document.getElementById('a-badge');
+  const naiveFull = A.rear===CAP-1;   // definisi naif isFull
+  if(A.size===0) setBadge(badge,'empty');
+  else if(naiveFull) setBadge(badge,'full');
+  else setBadge(badge,'ok');
+}
+document.getElementById('a-enq').onclick=()=>{
+  const v=parseInt(document.getElementById('a-val').value);
+  const log=document.getElementById('a-log');
+  if(isNaN(v)){flash(log,'Masukkan angka dulu.','err');return;}
+  if(A.rear===CAP-1){                 // false full — masalah utama!
+    const kosong = A.front; // banyak slot kosong di kiri
+    flash(log,`❌ Error: queue "PENUH" (rear==${CAP-1}) — padahal ${A.front} slot kiri kosong &amp; terbuang! Inilah <b>false full</b>.`,'err');
+    return;
+  }
+  A.rear++; A.data[A.rear]=v; A.size++;
+  flash(log,`✅ Enqueue ${v} di indeks [${A.rear}].`,'ok');
+  renderA();
+  const cells=aArr.querySelectorAll('.cell');
+  if(cells[A.rear])cells[A.rear].classList.add('pop-in');
+  document.getElementById('a-val').value=v+10;
+};
+document.getElementById('a-deq').onclick=()=>{
+  const log=document.getElementById('a-log');
+  if(A.size===0){flash(log,'❌ Error: queue kosong, tidak bisa dequeue.','err');return;}
+  const v=A.data[A.front]; A.data[A.front]=null; A.front++; A.size--;
+  flash(log,`✅ Dequeue → ${v}. front bergerak ke [${A.front}]. Slot [${A.front-1}] kini terbuang.`,'ok');
+  renderA();
+};
+document.getElementById('a-reset').onclick=()=>{
+  A.data=new Array(CAP).fill(null);A.front=0;A.rear=-1;A.size=0;
+  flash(document.getElementById('a-log'),'Queue di-reset.');renderA();
+};
+
+/* ================= 2. CIRCULAR QUEUE ================= */
+const C = { data:new Array(CAP).fill(null), front:0, rear:CAP-1, size:0 };
+const svg=document.getElementById('c-svg');
+const cx=180,cy=160,R=115;
+function posFor(i){
+  const ang=(-90 + i*(360/CAP))*Math.PI/180;
+  return {x:cx+R*Math.cos(ang), y:cy+R*Math.sin(ang)};
+}
+function renderC(){
+  let html='';
+  // connecting circle
+  html+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="4 6"/>`;
+  for(let i=0;i<CAP;i++){
+    const p=posFor(i);
+    // is this slot currently occupied? occupied indices: front..(front+size-1) mod CAP
+    let occupied=false;
+    for(let k=0;k<C.size;k++){ if((C.front+k)%CAP===i){occupied=true;break;} }
+    const fill = occupied ? 'url(#g)' : '#1e293b';
+    const stroke = occupied ? '#38bdf8' : '#334155';
+    html+=`<circle cx="${p.x}" cy="${p.y}" r="30" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`;
+    html+=`<text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="18" font-weight="700" fill="${occupied?'#fff':'#475569'}">${occupied?C.data[i]:''}</text>`;
+    html+=`<text x="${p.x}" y="${p.y-38}" text-anchor="middle" font-size="11" fill="#64748b">[${i}]</text>`;
+    // pointer labels
+    if(C.size>0 && i===C.front) html+=`<text x="${p.x}" y="${p.y+50}" text-anchor="middle" font-size="12" font-weight="700" fill="#22c55e">front</text>`;
+    if(C.size>0 && i===C.rear) html+=`<text x="${p.x}" y="${p.y+ (i===C.front?62:50)}" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b">rear</text>`;
+  }
+  // center label
+  html+=`<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="13" fill="#64748b">ukuran</text>`;
+  html+=`<text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="24" font-weight="800" fill="#38bdf8">${C.size}/${CAP}</text>`;
+  html=`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>`+html;
+  svg.innerHTML=html;
+  document.getElementById('c-front').textContent=C.front;
+  document.getElementById('c-rear').textContent=C.rear;
+  document.getElementById('c-size').textContent=C.size;
+  const badge=document.getElementById('c-badge');
+  if(C.size===0)setBadge(badge,'empty');
+  else if(C.size===CAP)setBadge(badge,'full');
+  else setBadge(badge,'ok');
+}
+document.getElementById('c-enq').onclick=()=>{
+  const v=parseInt(document.getElementById('c-val').value);
+  const log=document.getElementById('c-log');
+  if(isNaN(v)){flash(log,'Masukkan angka dulu.','err');return;}
+  if(C.size===CAP){flash(log,'❌ Penuh! (ukuran == KAPASITAS). Dequeue dulu.','err');return;}
+  const old=C.rear;
+  C.rear=(C.rear+1)%CAP; C.data[C.rear]=v; C.size++;
+  const wrapped = C.rear<old ? ' <b>(rear melingkar kembali ke awal!)</b>' : '';
+  flash(log,`✅ Enqueue ${v}: rear = (${old}+1)%${CAP} = ${C.rear}.${wrapped}`,'ok');
+  renderC();
+  document.getElementById('c-val').value=v+10;
+};
+document.getElementById('c-deq').onclick=()=>{
+  const log=document.getElementById('c-log');
+  if(C.size===0){flash(log,'❌ Kosong! Tidak bisa dequeue.','err');return;}
+  const v=C.data[C.front]; const old=C.front;
+  C.data[C.front]=null; C.front=(C.front+1)%CAP; C.size--;
+  const wrapped = C.front<old ? ' <b>(front melingkar ke awal!)</b>':'';
+  flash(log,`✅ Dequeue → ${v}: front = (${old}+1)%${CAP} = ${C.front}.${wrapped}`,'ok');
+  renderC();
+};
+document.getElementById('c-reset').onclick=()=>{
+  C.data=new Array(CAP).fill(null);C.front=0;C.rear=CAP-1;C.size=0;
+  flash(document.getElementById('c-log'),'Circular queue di-reset. front=0, rear=4.');renderC();
+};
+
+/* ================= 3. LINKED LIST QUEUE ================= */
+let L=[]; // array of values, [0]=head ... [n-1]=tail
+const lrow=document.getElementById('l-row');
+function renderL(){
+  lrow.innerHTML='';
+  if(L.length===0){
+    lrow.innerHTML='<span class="nullbox">head → NULL &nbsp;&nbsp; tail → NULL</span>';
+  } else {
+    L.forEach((v,i)=>{
+      const node=document.createElement('div');
+      node.className='lnode';
+      let tag='';
+      if(i===0 && L.length===1) tag='<span class="tag head">head/tail</span>';
+      else if(i===0) tag='<span class="tag head">head</span>';
+      else if(i===L.length-1) tag='<span class="tag tail" >tail</span>';
+      node.innerHTML=`<div class="box">${v}${tag}</div>`+
+        (i<L.length-1?'<span class="arrow">▸</span>':'<span class="arrow">▸</span><span class="nullbox">NULL</span>');
+      lrow.appendChild(node);
+    });
+  }
+  document.getElementById('l-head').textContent=L.length?L[0]:'NULL';
+  document.getElementById('l-tail').textContent=L.length?L[L.length-1]:'NULL';
+  document.getElementById('l-size').textContent=L.length;
+  setBadge(document.getElementById('l-badge'), L.length?'ok':'empty');
+}
+document.getElementById('l-enq').onclick=()=>{
+  const v=parseInt(document.getElementById('l-val').value);
+  const log=document.getElementById('l-log');
+  if(isNaN(v)){flash(log,'Masukkan angka dulu.','err');return;}
+  const wasEmpty=L.length===0;
+  L.push(v);
+  flash(log, wasEmpty
+    ? `✅ Enqueue ${v}: queue kosong → node baru jadi head <b>dan</b> tail.`
+    : `✅ Enqueue ${v}: tail->next = node baru, lalu tail dipindah ke node ${v}.`,'ok');
+  renderL();
+  const nodes=lrow.querySelectorAll('.lnode');
+  if(nodes.length)nodes[nodes.length-1].classList.add('pop-in');
+  document.getElementById('l-val').value=v+10;
+};
+document.getElementById('l-deq').onclick=()=>{
+  const log=document.getElementById('l-log');
+  if(L.length===0){flash(log,'❌ Error: queue kosong, tidak bisa dequeue.','err');return;}
+  const v=L.shift();
+  const nowEmpty=L.length===0;
+  flash(log, nowEmpty
+    ? `✅ Dequeue → ${v}. head jadi NULL → <b>tail juga di-reset ke NULL</b> (hindari dangling pointer!).`
+    : `✅ Dequeue → ${v}. head pindah ke node ${L[0]}, node lama di-free.`,'ok');
+  renderL();
+};
+document.getElementById('l-reset').onclick=()=>{
+  L=[];flash(document.getElementById('l-log'),'Queue di-reset (head = tail = NULL).');renderL();
+};
+
+/* ---------- tab switching ---------- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('view-'+t.dataset.view).classList.add('active');
+  };
+});
+
+/* init */
+renderA();renderC();renderL();
+</script>
+</body>
+</html>
